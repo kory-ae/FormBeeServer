@@ -2,7 +2,7 @@ import JotformPackage from 'jotform'
 
 function initClient(userId){
     //TODO: Get apiKey from userId
-    const apiKey = '551e79ddb4528873871c64516e854ef6';    
+    const apiKey=process.env.MOCK_API_KEY
     const Jotform = JotformPackage.default;
     const client = new Jotform(apiKey);
     return client;

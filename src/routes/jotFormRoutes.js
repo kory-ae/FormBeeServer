@@ -2,6 +2,7 @@ import express from 'express';
 import { param, query } from 'express-validator';
 import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -16,13 +17,14 @@ const validatePagination = [
       .withMessage('Limit must be between 1 and 100')
   ];
   
-router.get('/forms', getJotForms);
+router.get('/forms', authenticate, getJotForms);
 
 router.get(
     '/form/:formId',
     [
+      authenticate,
       validatePagination,
-      validateRequest
+      validateRequest,
     ],
     getJotForm
 );
@@ -30,6 +32,7 @@ router.get(
 router.delete(
     '/form/:formId',
     [
+      authenticate,
       validatePagination,
       validateRequest
     ],
@@ -40,6 +43,7 @@ router.delete(
 router.get(
     '/form/:formId/submissions',
     [
+      authenticate,
       validatePagination,
       validateRequest
     ],
