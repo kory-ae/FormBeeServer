@@ -1,7 +1,8 @@
 import express from 'express';
 import { param, query } from 'express-validator';
-import { getJotSubmission,  deleteJotSubmission } from '../controllers/jotSubmissionController.js';
+import { getJotSubmission,  deleteJotSubmission,} from '../controllers/jotSubmissionController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -20,10 +21,13 @@ const validatePagination = [
     .withMessage('Limit must be between 1 and 100')
 ];
 
+
+
 // Get a specific submission
 router.get(
   '/submissions/:submissionId',
   [
+    authenticate,
     validateSubmissionId,
     validateRequest
   ],
@@ -34,6 +38,7 @@ router.get(
 router.delete(
   '/submissions/:submissionId',
   [
+    authenticate,
     validateSubmissionId,
     validateRequest
   ],

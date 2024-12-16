@@ -1,6 +1,6 @@
 import express from 'express';
 import { param, query } from 'express-validator';
-import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions } from '../controllers/jotFormController.js';
+import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, newSubmission } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -39,7 +39,6 @@ router.delete(
     deleteJotForm
 );
 
-
 router.get(
     '/form/:formId/submissions',
     [
@@ -49,5 +48,7 @@ router.get(
     ],
     getJotFormSubmissions
 );
+
+router.post('/form/:formId/newSubmission', authenticate, newSubmission);
 
 export default router;

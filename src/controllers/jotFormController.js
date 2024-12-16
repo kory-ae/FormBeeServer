@@ -1,7 +1,26 @@
-import { getForms, getForm, deleteForm, getSubmissionByForm } from '../services/jotAPIService.js';
+import { getForms, getForm, deleteForm, getSubmissionByForm, addSubmission } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
+import { supabase } from '../config/supabase.js';
 
 //const userConfigService = new UserConfigService();
+
+async function linkUserSubmission(submissionData){
+  try {
+    // Insert the row and return the inserted data
+    const { data, error } = await supabase
+      .from("submission")
+      .insert(submissionData)
+      .select()
+
+    if (error) {
+      throw error
+    }
+    return data
+  } catch (error) {
+    logger.error('Error inserting submission row:', error.message)
+    throw error
+  }
+}
 
 export const getJotForms = async (req, res) => {
   try {
@@ -42,11 +61,28 @@ export const deleteJotForm = async (req, res) => {
 export const getJotFormSubmissions = async (req, res) => {
     try {
         const { formId } = req.params;
-        const data = await getSubmissionByForm(12, formId);
+        const {includeDelete} = req.query.includeDelete === true;
+        let data = await getSubmissionByForm(12, formId);
+        if (!includeDelete){
+          data = data.filter(submission => submission.status !== "DELETED")
+        }
         return res.status(200).json({forms: data});
       }
       catch (error) {
         logger.error(`error while getting jot all forms for user: ${error}`)
         return res.status(500).json({ error: 'Internal server error' });
       }
+};
+
+export const newSubmission = async (req, res) => {
+  try {
+    const {formId} = req.params;
+    const jotData  = await addSubmission(req.user.id, formId, {"submission[1]": "NONE"});
+    const supaData = await linkUserSubmission({user_id: req.user.id, form_id: formId, submission_id: jotData.submissionID});
+    return res.status(200).json({submissionUrl: `http://www.jotform.com/edit/${jotData.submissionID}`})
+  }
+  catch (error) {
+    logger.error(`error while creating a new submission: ${error}`)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 };

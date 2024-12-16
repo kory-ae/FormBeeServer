@@ -25,30 +25,3 @@ export const deleteJotSubmission = async (req, res) => {
   }
 };
 
-/*
-export const deleteSubmission = async (req, res) => {
-  try {
-    const { submission_id } = req.params;
-
-    // todo check if the submission exists and belongs to the user    
-
-    //todo pass in API KEY
-    const apiKey = '551e79ddb4528873871c64516e854ef6';    
-    const Jotform = JotformPackage.default;
-    const client = new Jotform(apiKey);
-
-    const jotResponse = await client.submission.delete(submission_id);
-    if (jotResponse.responseCode == 200){
-        return res.status(200).json({
-            message: 'Submission deleted successfully'
-            });    
-    }
-    else {
-        return res.status(jotResponse.responseCode).json({
-            message: `failure from jot ${jotResponse.message}`
-        });
-    }
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-};*/

@@ -1,72 +1,73 @@
 import JotformPackage from 'jotform'
+import { getJotFormKey } from '../services/userConfigService.js';
+import logger from '../config/logger.js'
 
-function initClient(userId){
+async function initClient(userId){
     //TODO: Get apiKey from userId
-    const apiKey=process.env.MOCK_API_KEY
+    const apiKey= await getJotFormKey(userId)
     const Jotform = JotformPackage.default;
     const client = new Jotform(apiKey);
     return client;
 }
 
-export const getForms = async (userId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.user.getForms();
+const callWrapper = async (userId, jotCall) => {
+    const client = await initClient(userId);
+    const jotResponse = await jotCall(client);
     if (jotResponse.responseCode == 200){
         return jotResponse.content;
     }
     else 
+    {
+        logger.error(`Error calling jotform. responseCode: ${jotResponse.responseCode}, message: N/A }`)
         return "Fail";
+    }
+    
+}
+
+export const getForms = async (userId) => {
+    return callWrapper(userId, async (client) => {
+        return client.user.getForms();
+    })
 }
 
 export const getForm = async (userId, jotFormId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.form.get(jotFormId);
-    if (jotResponse.responseCode == 200){
-        return jotResponse.content;
-    }
-    else 
-        return "Fail";
+    return callWrapper(userId, async (client) => {
+        return client.form.get(jotFormId);
+    });
 }
 
 export const getSubmissionByForm = async (userId, jotFormId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.form.getSubmissions(jotFormId);
-    if (jotResponse.responseCode == 200){
-        return jotResponse.content;
-    }
-    else 
-        return "Fail";
+    return callWrapper(userId, async (client) => {
+        return client.form.getSubmissions(jotFormId)
+    });
 }
 
-
 export const deleteForm = async (userId, jotFormId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.form.delete(jotFormId);
-    if (jotResponse.responseCode == 200){
-        return jotResponse.content;
-    }
-    else 
-        return "Fail";
+    return callWrapper(userId, async (client) => {
+        return client.form.delete(jotFormId);
+    });
 }
 
 export const getSubmission = async (userId, submissionId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.submission.get(submissionId);
-    if (jotResponse.responseCode == 200){
-        return jotResponse.content;
-    }
-    else 
-        return "Fail";
+    return callWrapper(userId, async (client) => {
+        return client.submission.get(submissionId);
+    });
 }
-
 
 export const deleteSubmission = async (userId, submissionId) => {
-    const client = initClient(userId);
-    const jotResponse = await client.form.delete(jotFormId);
-    if (jotResponse.responseCode == 200){
-        return jotResponse.content;
-    }
-    else 
-        return "Fail";
+    return callWrapper(userId, async (client) => {
+        return client.form.delete(jotFormId);
+    });
 }
 
+export const addQuestionToForm = async (userId, formId, question) => {    
+    return callWrapper(userId, async (client) => {
+        return client.addFormQuestion(formId, question);
+    });
+}
+
+export const addSubmission = async (userId, formId, submission) => {
+    return callWrapper(userId, async (client) => {
+        return client.form.addSubmission(formId, submission);
+    });
+}
