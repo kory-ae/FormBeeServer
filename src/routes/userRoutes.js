@@ -1,7 +1,8 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createUser } from '../controllers/userController.js';
+import { createUser, updateUserConfig } from '../controllers/userController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -17,5 +18,7 @@ router.post(
   ],
   createUser
 );
+
+router.put('/users/userConfig', authenticate, updateUserConfig);
 
 export default router;

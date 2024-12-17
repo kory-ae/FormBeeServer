@@ -1,6 +1,6 @@
 import express from 'express';
 import { param, query } from 'express-validator';
-import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, newSubmission } from '../controllers/jotFormController.js';
+import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, newSubmission, addUserToForm, getFormUsers } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -50,5 +50,8 @@ router.get(
 );
 
 router.post('/form/:formId/newSubmission', authenticate, newSubmission);
+router.post('/form/:formId/user/:userId', authenticate, addUserToForm);
+router.get('/form/:formId/users', authenticate, getFormUsers);
+
 
 export default router;

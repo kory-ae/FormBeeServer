@@ -30,3 +30,30 @@ export const createUser = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const updateUserConfig = async (req, res) => {
+
+  try {
+    const {account_type_id, jotform_key} = req.body;
+    const updateObject = {};
+    if (account_type_id){
+      updateObject.account_type_id = account_type_id
+    };
+    if (jotform_key){
+      updateObject.jotform_key = jotform_key
+    };
+
+    const {data, error} = await supabase
+      .from("user_config")
+      .update(updateObject)
+      .eq('user_id', req.user.id )
+
+      if (error) {
+        throw error
+      }  
+    return res.status(200).json({"message": "ok"});
+  } catch (error) {
+    logger.error(`error while updating userConfig: ${error}`)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}

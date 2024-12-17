@@ -2,7 +2,24 @@ import { getForms, getForm, deleteForm, getSubmissionByForm, addSubmission } fro
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 
-//const userConfigService = new UserConfigService();
+
+async function joinUserData(intialData){
+
+  const userIds = intialData.map((row) => {
+    return row.user_id;
+  });
+
+  const { data, error } = await supabase
+  .from('auth.users')
+  .select('id, email')
+  .in('id', userIds);
+
+  if (error) 
+    throw error
+
+  return data;
+
+}
 
 async function linkUserSubmission(submissionData){
   try {
@@ -86,3 +103,46 @@ export const newSubmission = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const addUserToForm = async (req, res) => {
+  try {
+
+    const {formId, userId} = req.params;
+
+    //TODO make sure the user isnt already associated with the form
+
+    // Insert the row and return the inserted data
+    const { data, error } = await supabase
+      .from("survey_user")
+      .insert({form_id: formId, user_id: userId})
+      .select()
+
+    if (error) {
+      throw error
+    }
+    
+    return res.status(200).json(data);
+  } catch (error) {
+    logger.error(`error while adding user to jot form: ${error}`)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export const getFormUsers = async (req, res) => {
+  try {
+
+    const {formId} = req.params;
+    // Insert the row and return the inserted data
+    const { data, error } = await supabase
+      .from("survey_user")
+      .select("*")
+      .eq("form_id", formId)
+
+     //would like to get more info about the user but supabase doesnt allow us to query the auth.user table.
+     //might need to build that into user profile table (and change FK)
+    return res.status(200).json(data)
+  } catch (error) {
+    logger.error('Error inserting submission row:', error.message)
+    throw error
+  }
+}
