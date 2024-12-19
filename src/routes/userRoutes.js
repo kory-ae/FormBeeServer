@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createUser, updateUserConfig } from '../controllers/userController.js';
+import { createUser, updateUserConfig, getUserView } from '../controllers/userController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -20,5 +20,6 @@ router.post(
 );
 
 router.put('/users/userConfig', authenticate, updateUserConfig);
+router.get('/user', authenticate, getUserView);
 
 export default router;

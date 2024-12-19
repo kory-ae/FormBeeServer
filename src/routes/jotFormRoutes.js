@@ -1,8 +1,9 @@
 import express from 'express';
-import { param, query } from 'express-validator';
-import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, newSubmission, addUserToForm, getFormUsers } from '../controllers/jotFormController.js';
+import { param, query, body } from 'express-validator';
+import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, addFormFromJot,
+         newSubmission, addUserToForm, getFormUsers, getConfiguredForms } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, isPaid } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -17,7 +18,16 @@ const validatePagination = [
       .withMessage('Limit must be between 1 and 100')
   ];
   
-router.get('/forms', authenticate, getJotForms);
+router.get(
+  '/forms/jot', 
+  authenticate,
+  getJotForms);
+
+router.get(
+    '/forms', 
+    authenticate,
+    getConfiguredForms);
+
 
 router.get(
     '/form/:formId',
@@ -33,6 +43,7 @@ router.delete(
     '/form/:formId',
     [
       authenticate,
+      isPaid,
       validatePagination,
       validateRequest
     ],
@@ -49,9 +60,19 @@ router.get(
     getJotFormSubmissions
 );
 
+router.post(
+    '/form/',
+    [
+      body('jotFormId')
+        .isNumeric({ min: 200000000000000 }),
+      authenticate, 
+      isPaid
+    ],
+    addFormFromJot);
+
 router.post('/form/:formId/newSubmission', authenticate, newSubmission);
-router.post('/form/:formId/user/:userId', authenticate, addUserToForm);
-router.get('/form/:formId/users', authenticate, getFormUsers);
+router.post('/form/:formId/user/:userId', [authenticate, isPaid], addUserToForm);
+router.get('/form/:formId/users', [authenticate, isPaid], getFormUsers);
 
 
 export default router;

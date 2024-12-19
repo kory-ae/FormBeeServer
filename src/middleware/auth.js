@@ -1,4 +1,6 @@
 import { supabase } from '../config/supabase.js';
+import { isPaidAccount} from '../services/userConfigService.js';
+
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -17,8 +19,16 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = user;
+    req.user.isPaid = await isPaidAccount(req.user.id);
     next();
   } catch (error) {
     res.status(500).json({ error: 'Authentication failed' });
   }
+};
+
+export const isPaid = async (req, res, next) => {
+    if ( !req.user?.isPaid ) {
+      return res.status(403).json({error: "This account cannot use this functionality"})
+    }
+    next();
 };

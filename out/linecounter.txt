@@ -1,0 +1,57 @@
+===============================================================================
+EXTENSION NAME : linecounter
+EXTENSION VERSION : 0.2.7
+-------------------------------------------------------------------------------
+count time : 2024-12-19 10:21:12
+count workspace : c:\dev\KRZH\formbee\FormBeeServer
+total files : 37
+total code lines : 4871
+total comment lines : 32
+total blank lines : 168
+
+    statistics
+   |      extension|     total code|  total comment|    total blank|percent|
+   -------------------------------------------------------------------------
+   |            .js|            788|             31|            161|     16|
+   |          .json|           3988|              0|              7|     82|
+   |           .log|             86|              0|              0|    1.8|
+   |               |              9|              1|              0|   0.18|
+   -------------------------------------------------------------------------
+.bolt\config.json, code is 3, comment is 0, blank is 0.
+.env, code is 5, comment is 1, blank is 0.
+.gitignore, code is 4, comment is 0, blank is 0.
+codes.json, code is 18, comment is 0, blank is 0.
+logs\.6a8385029aaed3383ca37d3aa171a144e160f8bf-audit.json, code is 35, comment is 0, blank is 0.
+logs\.e5210eccd550f9edac74ec60024b73718af4e4e8-audit.json, code is 35, comment is 0, blank is 0.
+logs\combined-2024-12-14.log, code is 4, comment is 0, blank is 0.
+logs\combined-2024-12-16.log, code is 24, comment is 0, blank is 0.
+logs\combined-2024-12-17.log, code is 1, comment is 0, blank is 0.
+logs\combined-2024-12-18.log, code is 14, comment is 0, blank is 0.
+logs\combined-2024-12-19.log, code is 0, comment is 0, blank is 0.
+logs\error-2024-12-14.log, code is 4, comment is 0, blank is 0.
+logs\error-2024-12-16.log, code is 24, comment is 0, blank is 0.
+logs\error-2024-12-17.log, code is 1, comment is 0, blank is 0.
+logs\error-2024-12-18.log, code is 14, comment is 0, blank is 0.
+logs\error-2024-12-19.log, code is 0, comment is 0, blank is 0.
+package-lock.json, code is 3774, comment is 0, blank is 6.
+package.json, code is 29, comment is 0, blank is 0.
+src\config\logger.js, code is 59, comment is 9, blank is 9.
+src\config\supabase.js, code is 9, comment is 0, blank is 4.
+src\constants\accountTypes.js, code is 12, comment is 0, blank is 2.
+src\controllers\jotFormController.js, code is 197, comment is 7, blank is 38.
+src\controllers\jotSubmissionController.js, code is 30, comment is 0, blank is 6.
+src\controllers\userConfigController.js, code is 62, comment is 3, blank is 10.
+src\controllers\userController.js, code is 64, comment is 0, blank is 10.
+src\index.js, code is 23, comment is 8, blank is 11.
+src\jwtKey.js, code is 25, comment is 0, blank is 7.
+src\middleware\auth.js, code is 26, comment is 0, blank is 8.
+src\middleware\validateRequest.js, code is 8, comment is 0, blank is 2.
+src\routes\jotFormRoutes.js, code is 66, comment is 0, blank is 12.
+src\routes\jotSubmissionRoutes.js, code is 38, comment is 2, blank is 8.
+src\routes\userConfigRoutes.js, code is 41, comment is 0, blank is 4.
+src\routes\userRoutes.js, code is 21, comment is 0, blank is 4.
+src\services\jotAPIService.js, code is 61, comment is 0, blank is 12.
+src\services\userConfigService.js, code is 35, comment is 0, blank is 10.
+src\swagger-output.json, code is 94, comment is 0, blank is 1.
+src\swagger.js, code is 11, comment is 2, blank is 4.
+===============================================================================

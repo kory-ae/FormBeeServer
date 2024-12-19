@@ -57,3 +57,18 @@ export const updateUserConfig = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export const getUserView = async (req, res) => {
+  try {
+      const userView = {
+        id: req.user.id,
+        email: req.user.email,
+        fullName: req.user.fullName,
+        isPaid: req.user.isPaid
+      }
+    res.status(200).json({userView})
+
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};

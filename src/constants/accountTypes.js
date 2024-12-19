@@ -1,7 +1,6 @@
 export const ACCOUNT_TYPES = {
-    FREE: 0,
-    PREMIUM: 1,
-    ENTERPRISE: 2
+    PAID: 1,
+    FREE: 2,
   };
   
   export const getAccountTypeName = (typeNumber) => {

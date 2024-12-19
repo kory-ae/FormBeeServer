@@ -3,7 +3,6 @@ import { getJotFormKey } from '../services/userConfigService.js';
 import logger from '../config/logger.js'
 
 async function initClient(userId){
-    //TODO: Get apiKey from userId
     const apiKey= await getJotFormKey(userId)
     const Jotform = JotformPackage.default;
     const client = new Jotform(apiKey);
@@ -11,7 +10,9 @@ async function initClient(userId){
 }
 
 const callWrapper = async (userId, jotCall) => {
+
     const client = await initClient(userId);
+
     const jotResponse = await jotCall(client);
     if (jotResponse.responseCode == 200){
         return jotResponse.content;
@@ -21,7 +22,6 @@ const callWrapper = async (userId, jotCall) => {
         logger.error(`Error calling jotform. responseCode: ${jotResponse.responseCode}, message: N/A }`)
         return "Fail";
     }
-    
 }
 
 export const getForms = async (userId) => {
@@ -56,7 +56,7 @@ export const getSubmission = async (userId, submissionId) => {
 
 export const deleteSubmission = async (userId, submissionId) => {
     return callWrapper(userId, async (client) => {
-        return client.form.delete(jotFormId);
+        return client.submission.delete(submissionId);
     });
 }
 

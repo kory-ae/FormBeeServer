@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { getAccountTypeName, isValidAccountType } from '../constants/accountTypes.js';
+import { getAccountTypeName } from '../constants/accountTypes.js';
 
 export const updateUserConfig = async (req, res) => {
   try {
