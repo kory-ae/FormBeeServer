@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { ACCOUNT_TYPES } from '../constants/accountTypes.js';
+import { ACCOUNT_TYPES } from '../types/accountTypes.js';
 
 export const getJotFormKey = async (userId) => {
     

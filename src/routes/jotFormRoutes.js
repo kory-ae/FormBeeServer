@@ -1,7 +1,7 @@
 import express from 'express';
 import { param, query, body } from 'express-validator';
 import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, addFormFromJot,
-         newSubmission, addUserToForm, getFormUsers, getConfiguredForms } from '../controllers/jotFormController.js';
+         newSubmission, addUserToForm, getFormUsers, getConfiguredForms, getJotFormQuestions, updateForm } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
 
@@ -73,6 +73,16 @@ router.post(
 router.post('/form/:formId/newSubmission', authenticate, newSubmission);
 router.post('/form/:formId/user/:userId', [authenticate, isPaid], addUserToForm);
 router.get('/form/:formId/users', [authenticate, isPaid], getFormUsers);
+router.get('/form/:formId/questions', [authenticate, isPaid], getJotFormQuestions);
+
+router.put(
+  '/form/:formId/', 
+  [
+    //TODO: validate body
+    authenticate, 
+    isPaid
+  ], 
+  updateForm);
 
 
 export default router;

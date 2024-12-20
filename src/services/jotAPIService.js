@@ -71,3 +71,9 @@ export const addSubmission = async (userId, formId, submission) => {
         return client.form.addSubmission(formId, submission);
     });
 }
+
+export const getFormQuestions = async (userId, formId) => {
+    return callWrapper(userId, async (client) => {
+        return client.form.getQuestions(formId);
+    });
+}

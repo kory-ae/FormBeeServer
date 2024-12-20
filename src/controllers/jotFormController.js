@@ -1,4 +1,4 @@
-import { getForms, getForm, deleteForm, getSubmissionByForm, addSubmission } from '../services/jotAPIService.js';
+import { getForms, getForm, deleteForm, getSubmissionByForm, addSubmission, getFormQuestions } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 
@@ -53,6 +53,35 @@ async function getConfiguredFormsByAssociation (userId) {
     .in("form_id", formList.map(x => x.form_id))
 
   return {data, error};
+}
+
+function formatJotQuestions (questions) {
+  if (!questions || questions.length ==0) {
+    return [];
+  }
+
+  const nonfillableTypes = [
+    "control_head",
+    "control_button"
+    //divider
+    //section
+    //page break
+  ]
+  
+  const entries = Object.entries(questions)
+  
+  return entries
+  .filter( ([_, q]) => !nonfillableTypes.includes(q.type))
+  .map(([_, q]) => {
+    return {
+     name: q.name,
+     order: q.order,
+     id: q.qid,
+     header: q.text
+    }
+  })
+  .sort((a,b) => parseInt(a.order) - parseInt(b.order))
+
 }
 
 export const getJotForms = async (req, res) => {
@@ -227,6 +256,49 @@ export const getConfiguredForms = async (req, res) => {
       throw error;
     }
     return res.status(200).json({ data })
+  }
+  catch (error)
+  {
+    if (error?.name == "AxiosError" && error.status === 401) {
+      return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
+    }
+    else {
+      logger.error("Unabled to get form from JotForm" + error)
+      return res.status(500).json({ error: 'Internal server error' });  
+    }
+  } 
+}
+
+export const getJotFormQuestions = async (req, res) => {
+  try {
+    const {formId} = req.params;
+    const data = await getFormQuestions(req.user.id, formId);
+    const formattedQuestions = formatJotQuestions(data)
+    return res.status(200).json({formattedQuestions});
+  }
+  catch (error)
+  {
+    if (error?.name == "AxiosError" && error.status === 401) {
+      return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
+    }
+    else {
+      logger.error("Unabled to get form from JotForm" + error)
+      return res.status(500).json({ error: 'Internal server error' });  
+    }
+  } 
+}
+
+export const updateForm = async (req, res) => {
+  try {
+    const {formId} = req.params;
+    const formData = req.body;
+    const { data, error } = await supabase
+        .from('forms')
+        .update(formData)
+        .eq("form_id", formId)
+        .select();
+
+    return res.status(200).json(data);
   }
   catch (error)
   {

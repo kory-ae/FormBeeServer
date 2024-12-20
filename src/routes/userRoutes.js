@@ -7,7 +7,7 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 
 router.post(
-  '/users',
+  '/user',
   [
     body('email').isEmail().withMessage('Please provide a valid email'),
     body('password')
@@ -19,7 +19,7 @@ router.post(
   createUser
 );
 
-router.put('/users/userConfig', authenticate, updateUserConfig);
+router.put('/user/userConfig', authenticate, updateUserConfig);
 router.get('/user', authenticate, getUserView);
 
 export default router;
