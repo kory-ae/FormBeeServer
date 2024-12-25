@@ -1,6 +1,7 @@
 export const ACCOUNT_TYPES = {
     PAID: 1,
     FREE: 2,
+    NOT_CONFIGURED: -1
   };
   
   export const getAccountTypeName = (typeNumber) => {

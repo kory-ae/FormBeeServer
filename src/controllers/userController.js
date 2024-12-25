@@ -2,14 +2,14 @@ import { supabase } from '../config/supabase.js';
 
 export const createUser = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, account_type_id } = req.body;
 
     const { data: { user }, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name
+          account_type_id
         }
       }
     });
@@ -69,6 +69,7 @@ export const getUserView = async (req, res) => {
     res.status(200).json({userView})
 
   } catch (error) {
+    logger(`error while trying to get userView ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

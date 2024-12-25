@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase.js';
-import { isPaidAccount} from '../services/userConfigService.js';
+import { isPaidAccount, configureUser} from '../services/userConfigService.js';
+import { ACCOUNT_TYPES } from '../types/accountTypes.js';
 
 
 export const authenticate = async (req, res, next) => {
@@ -20,6 +21,11 @@ export const authenticate = async (req, res, next) => {
 
     req.user = user;
     req.user.isPaid = await isPaidAccount(req.user.id);
+    if (req.user.isPaid == ACCOUNT_TYPES.NOT_CONFIGURED) {
+      const data = await configureUser(user)
+      req.user.isPaid = await isPaidAccount(req.user.id);
+    }
+      
     next();
   } catch (error) {
     res.status(500).json({ error: 'Authentication failed' });

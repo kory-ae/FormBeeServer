@@ -165,24 +165,108 @@ export const newSubmission = async (req, res) => {
   }
 };
 
-export const addUserToForm = async (req, res) => {
+function filterUserList (emailList, userData, formUserData) {
+
+  //Email exists in user table, but does not exist in user_form table
+  const existingUsersToInvite = userData
+    .reduce( (acc, curr) =>{
+      const invited = emailList.includes(curr.email)
+      const alreadyAdded = formUserData.some(x => curr.id == x.user_id)
+      
+      if(invited && !alreadyAdded) {
+        acc.push({user_id: curr.id, email: null});    
+      }
+      return acc
+    },[]);
+
+  //Email does not exist in user table or user_form table
+  const newUsersToInvite = emailList
+    .reduce( (acc, curr) => {
+      const notInUserTable = !userData.some(x => x.email == curr)
+      const notInFormTable = !formUserData.some(x => x.email == curr)
+      
+      if (notInFormTable && notInUserTable) {
+        acc.push({user_id: null, email: curr})
+      }
+      return acc
+    }, [])
+
+  const addList = existingUsersToInvite.concat(newUsersToInvite);
+
+  //userForm has an email not in input or an id whose user.email is not in input
+  const deleteList = formUserData
+    .reduce( (acc, curr) => {
+      console.log(`looking at: ${curr.user_id}, ${curr.email}`)
+      let listed = emailList.includes(curr.email);
+      console.log(`email listed? ${listed}`)
+      if (curr.user_id) {
+        const userEmail = userData.find(x => x.id == curr.user_id).email
+        listed = emailList.includes(userEmail)
+      }      
+      console.log(`now listed ? ${listed}`)
+      if (!listed) {
+        acc.push(curr)
+      }
+      return acc
+    },[])
+
+  return {addList, deleteList}
+}
+
+export const updateUserList = async (req, res) => {
   try {
+    const {formId} = req.params;
+    const { emailList } = req.body
 
-    const {formId, userId} = req.params;
-
-    //TODO make sure the user isnt already associated with the form
-
-    // Insert the row and return the inserted data
-    const { data, error } = await supabase
+    const {data: formUser_data, error: selectError} = await supabase
       .from("form_user")
-      .insert({form_id: formId, user_id: userId})
-      .select()
+      .select("user_id, email")
+      .eq('form_id', formId);
 
-    if (error) {
-      throw error
+    if (selectError) {
+      throw selectError
     }
-    
-    return res.status(200).json(data);
+
+    const {data: userData, error: selectUserError} = await supabase
+      .from('users')
+      .select('id, email')
+
+    if (selectUserError) {
+      throw selectUserError
+    }
+
+    const {addList, deleteList } = filterUserList(emailList, userData, formUser_data);
+    addList.forEach(a => a.form_id = formId)
+    const {error: insertError} = await supabase
+      .from("form_user")
+      .insert(addList)
+
+    const { error: deleteError } = await supabase
+      .from("form_user")
+      .delete()
+      .eq("form_id", formId)
+      .in('user_id', deleteList.filter(x => x.userId).map(x => x.userId))
+      
+    const { error: deleteError2 } = await supabase
+      .from("form_user")
+      .delete()
+      .eq("form_id", formId)
+      .in('email', deleteList.filter(x => x.email).map(x => x.email))
+           
+    if (deleteError || deleteError2) {
+        throw deleteError ? deleteError :  deleteError2
+    } 
+
+    const {data: newFormData, error: newSelectError} = await supabase
+        .from("form_user")
+        .select("email, users(email)")
+        .eq('form_id', formId);
+
+      if (newSelectError) {
+        throw selectError
+      }
+
+    return res.status(200).json(newFormData);
   } catch (error) {
     logger.error(`error while adding user to jot form: ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
