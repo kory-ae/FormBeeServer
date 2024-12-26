@@ -45,7 +45,7 @@ export const isPaidAccount = async (userId) => {
     if (data.length == 0){
         return ACCOUNT_TYPES.NOT_CONFIGURED;
     }
-    if (data.length > 0){
+    if (data.length > 1){
         logger.error(`Found multiple configs for user ${user.id}`)
         throw new Error('Found multiple configs')
     }
