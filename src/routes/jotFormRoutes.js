@@ -79,8 +79,8 @@ router.put('/form/:formId/userList',
     isPaid
   ], 
   updateUserList);
-router.get('/form/:formId/users', [authenticate, isPaid], getFormUsers);
-router.get('/form/:formId/questions', [authenticate, isPaid], getJotFormQuestions);
+router.get('/form/:formId/userList', [authenticate, isPaid], getFormUsers);
+router.get('/form/:formId/questions', [authenticate], getJotFormQuestions);
 
 router.put(
   '/form/:formId/', 

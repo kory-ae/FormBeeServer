@@ -49,7 +49,7 @@ export const isPaidAccount = async (userId) => {
         logger.error(`Found multiple configs for user ${user.id}`)
         throw new Error('Found multiple configs')
     }
-    return data.account_type_id !== ACCOUNT_TYPES.FREE;
+    return data[0].account_type_id === ACCOUNT_TYPES.PAID;
 }
 
 export const configureUser = async (user) => {

@@ -4,6 +4,18 @@ export const createUser = async (req, res) => {
   try {
     const { email, password, account_type_id } = req.body;
 
+    const { data: existingUser } = await supabase
+    .from('users')
+    .select('email')
+    .eq('email', email)
+    .single();
+
+    if (existingUser) {
+      return res.status(409).json({ 
+        error: 'Email already registered' 
+      });
+    }
+    
     const { data: { user }, error } = await supabase.auth.signUp({
       email,
       password,
@@ -60,12 +72,24 @@ export const updateUserConfig = async (req, res) => {
 
 export const getUserView = async (req, res) => {
   try {
-      const userView = {
-        id: req.user.id,
-        email: req.user.email,
-        fullName: req.user.fullName,
-        isPaid: req.user.isPaid
-      }
+      const {data, error} = await supabase
+        .from('user_config')
+        .select('account_type_id, jotform_key')
+        .eq('user_id', req.user.id)
+        .single()
+
+        if (error)
+          throw error
+
+        const userView = {
+          id: req.user.id,
+          email: req.user.email,
+          account_type_id: data.account_type_id,
+          jotform_key: data.jotform_key
+        }
+
+  
+
     res.status(200).json({userView})
 
   } catch (error) {
