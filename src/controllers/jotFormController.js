@@ -1,4 +1,4 @@
-import { getForms, getForm, deleteForm, getSubmissionByForm, addSubmission, getFormQuestions } from '../services/jotAPIService.js';
+import { getForms, getForm, getSubmissionByForm, addSubmission, getFormQuestions } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 
@@ -154,17 +154,24 @@ export const getJotForm = async (req, res) => {
         return res.status(200).json({forms: data});
       }
       catch (error) {
+        if (error?.name == "AxiosError" && error.status === 401) {
+          return res.status(error.status).json({ error: 'Internal server error' });  
+        }
         logger.error(`error while getting single jot form: ${error}`)
         return res.status(500).json({ error: 'Internal server error' });
       }
 };
 
-export const deleteJotForm = async (req, res) => {
+export const deleteForm = async (req, res) => {
     try {
         const { formId } = req.params;
-        const data = await deleteForm(req.user.id, formId);
+        
+        const {data, error} = await supabase
+          .from('forms')
+          .delete()
+          .eq('form_id', formId)
 
-        return res.status(200).json({forms: data});
+        return res.status(204);
       }
       catch (error) {
         logger.error(`error while deleting jot form: ${error}`)
@@ -175,13 +182,18 @@ export const deleteJotForm = async (req, res) => {
 export const getJotFormSubmissions = async (req, res) => {
     try {
         const { formId } = req.params;
-        const {includeDelete} = req.query.includeDelete === true;
+        const {includeDelete} = req.query.includeDelete === true;;
+
+        logger.info(`Getting submissions for form ${formId}`)
+
         const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
         let data = await getSubmissionByForm(userId, formId);
         if (!includeDelete){
           data = data.filter(submission => submission.status !== "DELETED")
         }
+        logger.info(`Found ${data.length} rows for form ${formId}`)
         if (!req.user.isPaid) {
+          logger.info(`User is free user, filtering list to user's submissions`)
           const {data: submissionData, error } = await supabase
             .from("submission")
             .select("submission_id")
@@ -193,7 +205,9 @@ export const getJotFormSubmissions = async (req, res) => {
 
 
           data = data.filter(submission => userSubmissions.includes(submission.id))
+          logger.info(`...now ${data.length} rows for form ${formId}`)
         }
+        logger.info(`RETURNING: ${data.length} rows for form ${formId}`)
         return res.status(200).json({forms: data});
       }
       catch (error) {
@@ -297,7 +311,7 @@ export const updateUserList = async (req, res) => {
       .from("form_user")
       .delete()
       .eq("form_id", formId)
-      .in('user_id', deleteList.filter(x => x.userId).map(x => x.userId))
+      .in('user_id', deleteList.map(x => x.user_id))
       
     const { error: deleteError2 } = await supabase
       .from("form_user")
@@ -411,6 +425,22 @@ export const getConfiguredForms = async (req, res) => {
     if (error) {
       logger.error(`error while getting configured forms: ${error}`);
       throw error;
+    }
+
+    //Get jot forms to warn about removed forms
+    const userIdList = [... new Set(data.map(x => x.user_id))]
+    //await userIdList.forEach(async (user_id) => {
+    for(const user_id of userIdList) {
+      const jotForms = (await getForms(user_id)).filter(f => f.status == 'ENABLED')
+      data.forEach(configuredForm => {
+        if (configuredForm.user_id !== user_id) {
+          return;
+        }
+        const found = jotForms.find(jot => jot.id == configuredForm.form_id)
+        if (!found) {
+          configuredForm.warning = "No longer in JotForm"
+        }
+      })
     }
     return res.status(200).json({ data })
   }

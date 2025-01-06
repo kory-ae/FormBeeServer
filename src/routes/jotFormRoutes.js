@@ -1,6 +1,6 @@
 import express from 'express';
 import { param, query, body } from 'express-validator';
-import { getJotForm, getJotForms, deleteJotForm, getJotFormSubmissions, addFormFromJot,
+import { getJotForm, getJotForms, getJotFormSubmissions, addFormFromJot, deleteForm,
          newSubmission, updateUserList, getFormUsers, getConfiguredForms, getJotFormQuestions, updateForm } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
@@ -47,7 +47,7 @@ router.delete(
       validatePagination,
       validateRequest
     ],
-    deleteJotForm
+    deleteForm
 );
 
 router.get(

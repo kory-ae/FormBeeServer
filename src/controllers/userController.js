@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase.js';
+import logger from '../config/logger.js';
 
 export const createUser = async (req, res) => {
   try {
@@ -78,8 +79,7 @@ export const getUserView = async (req, res) => {
         .eq('user_id', req.user.id)
         .single()
 
-        if (error)
-          throw error
+        if (error) throw error
 
         const userView = {
           id: req.user.id,
@@ -88,12 +88,10 @@ export const getUserView = async (req, res) => {
           jotform_key: data.jotform_key
         }
 
-  
-
     res.status(200).json({userView})
 
   } catch (error) {
-    logger(`error while trying to get userView ${error}`)
+    logger.error(`error while trying to get userView ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

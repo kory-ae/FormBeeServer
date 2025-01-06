@@ -10,68 +10,29 @@ const levels = {
   debug: 4,
 };
 
-// Define log colors
-const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'blue',
-};
-
-// Add colors to Winston
-winston.addColors(colors);
-
 // Define Winston format
-const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
-);
+const format = winston.format.printf(({ level, message, timestamp }) => {
+  // Heroku timestamps are automatically added, so we don't need to include them
+  return `${level}: ${message}`;
+});
 
-// Define transports
-const transports = [
-  // Console transport
-  new winston.transports.Console(),
-  
-  // Error log file transport
-  new winston.transports.DailyRotateFile({
-    filename: 'logs/error-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    level: 'error',
-    format: winston.format.combine(
-      winston.format.uncolorize(),
-      winston.format.printf(
-        (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-      ),
-    ),
-    maxSize: '20m',
-    maxFiles: '14d',
-  }),
-  
-  // Combined log file transport
-  new winston.transports.DailyRotateFile({
-    filename: 'logs/combined-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    format: winston.format.combine(
-      winston.format.uncolorize(),
-      winston.format.printf(
-        (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-      ),
-    ),
-    maxSize: '20m',
-    maxFiles: '14d',
-  }),
-];
-
-// Create the logger
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  levels,
-  format,
-  transports,
+  // Log level hierarchy: error > warn > info > verbose > debug > silly
+  level: process.env.LOG_LEVEL || 'info',
+  
+  // Use Heroku-friendly format
+  format: winston.format.combine(
+    winston.format.splat(),
+    winston.format.simple(),
+    format
+  ),
+  
+  transports: [
+    // Console transport for Heroku log drain
+    new winston.transports.Console({
+      stderrLevels: ['error'],
+    })
+  ]
 });
 
 export default logger;

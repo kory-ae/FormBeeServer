@@ -42,12 +42,6 @@ export const getSubmissionByForm = async (userId, jotFormId) => {
     });
 }
 
-export const deleteForm = async (userId, jotFormId) => {
-    return callWrapper(userId, async (client) => {
-        return client.form.delete(jotFormId);
-    });
-}
-
 export const getSubmission = async (userId, submissionId) => {
     return callWrapper(userId, async (client) => {
         return client.submission.get(submissionId);

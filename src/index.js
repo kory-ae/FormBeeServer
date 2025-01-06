@@ -2,13 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import logger from './config/logger.js';
+
 import userRoutes from './routes/userRoutes.js';
 import jotFormRoutes from './routes/jotFormRoutes.js';
 import jotSubmissionRoutes from './routes/jotSubmissionRoutes.js';
 
-import bodyParser  from 'body-parser'
-import swaggerJsdoc   from 'swagger-jsdoc'
-import swaggerUi   from 'swagger-ui-express'
 
 dotenv.config();
 
@@ -39,4 +38,5 @@ app.get('/health', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  logger.info(" ... from winston!!!")
 });
