@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase.js';
 import { isPaidAccount, configureUser} from '../services/userConfigService.js';
 import { ACCOUNT_TYPES } from '../types/accountTypes.js';
+import logger from '../config/logger.js';
 
 
 export const authenticate = async (req, res, next) => {
@@ -28,6 +29,7 @@ export const authenticate = async (req, res, next) => {
       
     next();
   } catch (error) {
+    logger.error('auth failed internally. ' + error)
     res.status(500).json({ error: 'Authentication failed' });
   }
 };
