@@ -33,11 +33,17 @@ export const getJotFormKeyByForm = async (formId) => {
 
 export const isPaidAccount = async (userId) => {
     
+    const startTime = Date.now();
+    logger.debug("checking is paid acct from supabase")
     const { data, error } = await supabase
         .from('user_config')
         .select('account_type_id')
         .eq('user_id', userId)
         .select();
+    const endTime = Date.now();
+    
+    logger.debug(`...query complete: ${(endTime-startTime)}`)
+
 
     if (error) {
         throw error;
