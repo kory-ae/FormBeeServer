@@ -7,6 +7,7 @@ import logger from './config/logger.js';
 import userRoutes from './routes/userRoutes.js';
 import jotFormRoutes from './routes/jotFormRoutes.js';
 import jotSubmissionRoutes from './routes/jotSubmissionRoutes.js';
+import { pingSupabase} from './services/supabasePing.js'
 
 
 dotenv.config();
@@ -26,6 +27,14 @@ app.use('/api', jotSubmissionRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// check supabase latency
+app.get('/instrument', async (req, res) => {
+  logger.debug('Measuring Supabase latency...')
+  const stats = await pingSupabase(5)
+  res.status(200).json(stats)
+
 });
 
 
