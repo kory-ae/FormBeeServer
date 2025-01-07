@@ -1,1 +1,1 @@
-web: node src/index.js
+web: node -r newrelic src/index.js
