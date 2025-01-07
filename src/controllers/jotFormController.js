@@ -419,9 +419,10 @@ export const addFormFromJot = async (req, res) => {
 export const getConfiguredForms = async (req, res) => {
 
   try {
+    logger.debug("Starting get configured forms")
     const userId = req.user.id;
     const { data, error } = (req.user.isPaid) ? await getConfiguredFormsByUser(userId) : await getConfiguredFormsByAssociation(req.user)
-
+    logger.debug("have user Id list")
     if (error) {
       logger.error(`error while getting configured forms: ${error}`);
       throw error;
@@ -431,8 +432,11 @@ export const getConfiguredForms = async (req, res) => {
     const userIdList = [... new Set(data.map(x => x.user_id))]
     //await userIdList.forEach(async (user_id) => {
     for(const user_id of userIdList) {
+      logger.debug("looking user Id " + user_id)
       const jotForms = (await getForms(user_id)).filter(f => f.status == 'ENABLED')
+      logger.debug("have jot forms for user")
       data.forEach(configuredForm => {
+        logger.debug("looking for missing")
         if (configuredForm.user_id !== user_id) {
           return;
         }
@@ -441,7 +445,9 @@ export const getConfiguredForms = async (req, res) => {
           configuredForm.warning = "No longer in JotForm"
         }
       })
+      logger.debug("done looking at that userId")
     }
+    logger.debug("... done get configuredForms")
     return res.status(200).json({ data })
   }
   catch (error)

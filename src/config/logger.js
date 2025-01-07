@@ -18,7 +18,8 @@ const format = winston.format.printf(({ level, message, timestamp }) => {
 
 const logger = winston.createLogger({
   // Log level hierarchy: error > warn > info > verbose > debug > silly
-  level: process.env.LOG_LEVEL || 'info',
+  //level: process.env.LOG_LEVEL || 'info',
+  level: 'debug',
   
   // Use Heroku-friendly format
   format: winston.format.combine(
