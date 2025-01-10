@@ -26,6 +26,7 @@ app.use('/api', jotSubmissionRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+
   res.status(200).json({ status: 'ok' });
 });
 
@@ -34,7 +35,6 @@ app.get('/instrument', async (req, res) => {
   logger.debug('Measuring Supabase latency...')
   const stats = await pingSupabase(5)
   res.status(200).json(stats)
-
 });
 
 
