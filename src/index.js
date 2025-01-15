@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import logger from './config/logger.js';
 
 import userRoutes from './routes/userRoutes.js';
+import formRoutes from './routes/formRoutes.js';
 import jotFormRoutes from './routes/jotFormRoutes.js';
+import formGroupRoutes from './routes/formGroupRoutes.js';
 import jotSubmissionRoutes from './routes/jotSubmissionRoutes.js';
 import { pingSupabase} from './services/supabasePing.js'
 
@@ -21,6 +23,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api', userRoutes);
+app.use('/api', formGroupRoutes);
+app.use('/api', formRoutes);
 app.use('/api', jotFormRoutes);
 app.use('/api', jotSubmissionRoutes);
 

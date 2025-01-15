@@ -1,9 +1,8 @@
 import express from 'express';
-import { param, query, body } from 'express-validator';
-import { getJotForm, getJotForms, getJotFormSubmissions, addFormFromJot, deleteForm,
-         newSubmission, updateUserList, getFormUsers, getConfiguredForms, getJotFormQuestions, updateForm } from '../controllers/jotFormController.js';
+import { query } from 'express-validator';
+import { getJotForm, getJotForms, getJotFormQuestions } from '../controllers/jotFormController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
-import { authenticate, isPaid } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -19,76 +18,24 @@ const validatePagination = [
   ];
   
 router.get(
-  '/forms/jot', 
-  authenticate,
-  getJotForms);
-
-router.get(
-    '/forms', 
-    authenticate,
-    getConfiguredForms);
-
-
-router.get(
-    '/form/:formId',
+    '/jot/form/:formId',
     [
       authenticate,
       validatePagination,
       validateRequest,
     ],
-    getJotForm
-);
-
-router.delete(
-    '/form/:formId',
-    [
-      authenticate,
-      isPaid,
-      validatePagination,
-      validateRequest
-    ],
-    deleteForm
+    getJotForm  
 );
 
 router.get(
-    '/form/:formId/submissions',
-    [
-      authenticate,
-      validatePagination,
-      validateRequest
-    ],
-    getJotFormSubmissions
-);
+  '/jot/forms', 
+  authenticate,
+  getJotForms);
 
-router.post(
-    '/form/',
-    [
-      body('jotFormId')
-        .isNumeric({ min: 200000000000000 }),
-      authenticate, 
-      isPaid
-    ],
-    addFormFromJot);
 
-router.post('/form/:formId/newSubmission', authenticate, newSubmission);
-router.put('/form/:formId/userList', 
-  [
-    body('emailList')
-      .isArray(),
-    authenticate, 
-    isPaid
-  ], 
-  updateUserList);
-router.get('/form/:formId/userList', [authenticate, isPaid], getFormUsers);
-router.get('/form/:formId/questions', [authenticate], getJotFormQuestions);
-
-router.put(
-  '/form/:formId/', 
-  [
-    //TODO: validate body
-    authenticate, 
-    isPaid
-  ], 
-  updateForm);
+router.get(
+  '/jot/:formId/questions',
+  authenticate, 
+  getJotFormQuestions);
 
 export default router;

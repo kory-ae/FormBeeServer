@@ -1,6 +1,7 @@
-import { getSubmission, deleteSubmission } from '../services/jotAPIService.js';
+import { getSubmission, deleteSubmission, getSubmissionByForm } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
+import { getFormOwner as formGetFormByUser } from '../controllers/formController.js';
 
 async function getFormOwner (submission_id) {
   
@@ -14,7 +15,6 @@ async function getFormOwner (submission_id) {
 
   return data[0].forms.user_id;
 }
-
 
 export const getJotSubmission = async (req, res) => {
   try {
@@ -51,3 +51,53 @@ export const deleteJotSubmission = async (req, res) => {
   }
 };
 
+function formatField(field) {
+  return field
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, 'zz');
+}
+
+export const getGroupParentSubmission = async (req, res) => {
+  try {
+    const { formGroupId } = req.params;
+
+    const {data, error} = await supabase
+      .from("form_group")
+      .select("parent_form_id, forms!form_group_parent_form_id_fkey(form_id, visible_fields)")
+      .eq("id", formGroupId)
+      .single();
+
+    //Todo: verify user has access to form group
+
+    if (error) throw error;
+
+    const userId = await formGetFormByUser(data.forms.form_id);
+    const submissions = await getSubmissionByForm(userId, data.forms.form_id)
+
+    if (submissions.length == 0) {
+      return res.status(400).json({error: "No submissions found"})
+    }
+    const keySet = Object.keys(submissions[0].answers);
+    const formattedData = submissions.map(submission => {
+      let record = {
+        id: submission.id
+      }
+      for (const field of data.forms.visible_fields) {
+        const id = keySet.find(x => submission.answers[x].text == field)
+        const fieldName = formatField(field)
+        record[fieldName] = (!id) ? "ERR!" : submission.answers[id].answer ?? ""
+      }
+      return record;
+    });
+
+    return res.status(200).json({
+      headers: data.forms.visible_fields,
+      submissions: formattedData
+    });
+  }
+  catch (error) {
+    logger.error(`error while getting group parent submission: ${error}`)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
