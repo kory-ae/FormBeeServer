@@ -70,9 +70,12 @@ export const deleteFormGroup= async (req, res) => {
 
 }
 
-export const getGroupsByUser= async (req, res) => {
+export const getGroupsByUser = async (req, res) => {
 
     try{
+
+        //this implies they are a paid user
+        //todo: only do this part if they're a paid user
         const { data, error } = await supabase
             .from('form_group')
             .select('*')
@@ -80,11 +83,25 @@ export const getGroupsByUser= async (req, res) => {
 
         if (error) throw error
 
-        res.status(200).json(data);
+        const { data: byCodeData, error: byCodeError } = await supabase
+            .from('user_form_group')
+            .select('*, form_group(*)')
+            .eq('user_id', req.user.id)
+
+        if (byCodeError) throw byCodeError
+
+        let allData = data;
+        if (byCodeData.length > 0){
+             byCodeData
+             .filter(x => x.form_group)
+             .forEach(x => {
+                allData = allData.concat(x.form_group)
+             })
+        }
+
+        res.status(200).json(allData);
     }catch (error) {
         logger.error('Error getting form groups by user:', error.message)
         res.status(500).json({ error: 'Internal server error' });
     }
-
-
 }

@@ -64,7 +64,7 @@ export const getGroupParentSubmission = async (req, res) => {
 
     const {data, error} = await supabase
       .from("form_group")
-      .select("parent_form_id, forms!form_group_parent_form_id_fkey(form_id, visible_fields)")
+      .select("parent_form_id, forms!form_group_parent_form_id_fkey(form_id, visible_fields, header_field)")
       .eq("id", formGroupId)
       .single();
 
@@ -93,7 +93,8 @@ export const getGroupParentSubmission = async (req, res) => {
 
     return res.status(200).json({
       headers: data.forms.visible_fields,
-      submissions: formattedData
+      submissions: formattedData,
+      header_field: formatField(data.forms.header_field)
     });
   }
   catch (error) {

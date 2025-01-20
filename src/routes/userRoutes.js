@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createUser, updateUserConfig, getUserView } from '../controllers/userController.js';
+import { createUser, updateUserConfig, getUserView, addUserFormGroup } from '../controllers/userController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -20,5 +20,7 @@ router.post(
 
 router.put('/user/userConfig', authenticate, updateUserConfig);
 router.get('/user', authenticate, getUserView);
+//todo verify code is 5 digits
+router.put('/user/formGroup/:code', authenticate, addUserFormGroup);
 
 export default router;

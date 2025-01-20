@@ -10,9 +10,7 @@ async function initClient(userId){
 }
 
 const callWrapper = async (userId, jotCall) => {
-
     const client = await initClient(userId);
-
     const jotResponse = await jotCall(client);
     if (jotResponse.responseCode == 200){
         return jotResponse.content;

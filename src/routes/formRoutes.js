@@ -2,7 +2,7 @@ import express from 'express';
 import { query, body } from 'express-validator';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
-import { deleteForm,  getJotFormSubmissions, addFormFromJot, getFormUsers, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
+import { deleteForm, getJotFormSubmissions, addFormFromJot, getFormUsers, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
 
 const router = express.Router();
 

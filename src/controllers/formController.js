@@ -1,6 +1,56 @@
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
-import { getForm, getForms, addSubmission } from '../services/jotAPIService.js';
+import { getForm, getForms, getSubmission, addSubmission, getSubmissionByForm } from '../services/jotAPIService.js';
+
+async function addSubmissionMetaData(userId, submissionData) {
+  //augment data with parent header and submitter data (if available)
+  const {data: metaSubData, error: metaSubError} = await supabase
+  .from("submission")
+  .select(`
+    id,
+    submission_id,
+    parent_submission_id,
+    users(
+      email
+    ),
+    forms (
+      form_group_id,
+      form_group!forms_form_group_id_fkey (
+        group_name,
+        forms!form_group_parent_form_id_fkey(
+          form_id,
+          header_field
+        )
+      )
+    )
+  `)
+  .in('submission_id', submissionData.map(sub => sub.id))
+
+  //if no matching records in submission, we're done.
+  if ( metaSubData.length === 0 ) return
+
+  const parentJotFormId = metaSubData[0]?.forms?.form_group.forms.form_id;
+  const header_field = metaSubData[0]?.forms?.form_group.forms.header_field;
+  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId)) : [];
+    
+  const parentKeys = Object.keys(parentSubmissions[0].answers);
+
+  const headerKey = parentKeys.find(k => parentSubmissions[0].answers[k].text == header_field);
+
+  submissionData.forEach( sub => {
+
+    //get parent 
+    const parentSubId = metaSubData.find(x=> x.submission_id == sub.id).parent_submission_id;
+    if (parentSubId) {
+      const parentSub = parentSubmissions.find(x => x.id == parentSubId);
+      if (parentSub) {
+        sub.__fbHeaderValue = parentSub.answers[headerKey].answer;
+      }
+    }
+    //email much easier
+    sub.__fbSubmitterEmail = metaSubData.find(m => m.submission_id == sub.id)?.users?.email ?? "N/A";
+  })
+}
 
 export async function linkUserSubmission(submissionData) {
   try {
@@ -39,70 +89,19 @@ export const getFormOwner = async (formId) => {
   return data[0].user_id;
 }
 
-async function updateNewFormUser() {
-  
-  const { data : newFormUser, error: error1 } = await supabase
-    .from("form_user")
-    .select("id,email")
-    .is('user_id', null)
-
-  if (error1) throw error1
-
-  if (newFormUser.length == 0)
-    return
-
-  const {data: existingUsers, error: error2} = await supabase
-    .from("users")
-    .select("id,email")
-    .filter(
-      'email',
-      'in',
-      `(${newFormUser.map(x => x.email.toLowerCase())})`
-    )
-    //.in('email', )
-
-  if (error1) throw error2
-
-  if (existingUsers.length == 0)
-    return
-
-  const updateSet = newFormUser.reduce((acc, curr) =>{
-      const foundUser = existingUsers.find(e => e.email.toLowerCase() == curr.email.toLowerCase() )
-      if (foundUser) {
-        curr.user_id = foundUser.id
-        curr.email = null
-        acc.push(curr)
-      }
-      return acc
-  }, [])
-
-  const {data: resultData, error: error3} = await supabase
-    .from("form_user")
-    .update(updateSet)
-    .select('*')
-    .in('id', updateSet.map(x => x.id))
-
-  if (error3) throw error3
-
-}
-
 async function getConfiguredFormsByAssociation (user) {
 
-  const { data : formList, error: error1 } = await supabase
-    .from("form_user")
+  const { data : groupList, error: error1 } = await supabase
+    .from("user_form_group")
     .select("*")
-    .or(`user_id.eq.${user.id},email.ilike.${user.email}`)
+    .eq('user_id',user.id)
 
-  if (error1) return {formList, error1};
-
-  if (formList.some(x => x.email)){
-    updateNewFormUser()
-  }
+  if (error1) throw error1;
 
   const {data, error} = await supabase
     .from("forms")
     .select("*")
-    .in("form_id", formList.map(x => x.form_id))
+    .in("form_group_id", groupList.map(x => x.form_group_id))
 
   return {data, error};
 }
@@ -127,7 +126,7 @@ export const deleteForm = async (req, res) => {
 export const getJotFormSubmissions = async (req, res) => {
   try {
       const { formId } = req.params;
-      const {includeDelete} = req.query.includeDelete === true;;
+      const { includeDelete } = req.query.includeDelete === true;
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
       let data = await getSubmissionByForm(userId, formId);
       if (!includeDelete){
@@ -140,18 +139,28 @@ export const getJotFormSubmissions = async (req, res) => {
           .select("submission_id")
           .eq("user_id", req.user.id);
         
-          if (error) throw error;
+        if (error) throw error;
 
-          const userSubmissions = submissionData.map( x=> x.submission_id);
-
-
+        const userSubmissions = submissionData.map( x=> x.submission_id);
         data = data.filter(submission => userSubmissions.includes(submission.id))
-        
       }
+      if (req.query.parent_submission_id) {
+        const {data: submissionData, error } = await supabase
+          .from("submission")
+          .select("submission_id")
+          .eq("parent_submission_id", req.query.parent_submission_id);
+      
+        if (error) throw error;
+
+        const userSubmissions = submissionData.map( x=> x.submission_id);
+        data = data.filter(submission => userSubmissions.includes(submission.id))
+      }
+
+      await addSubmissionMetaData(userId, data);
       return res.status(200).json({forms: data});
     }
     catch (error) {
-      logger.error(`error while getting jot all forms for user: ${error}`)
+      logger.error(`error while getting all jot forms for user: ${error}`)
       return res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -228,7 +237,7 @@ export const addFormFromJot = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unable to get form from JotForm: " + error)
+      logger.error("Unable to add form from JotForm: " + error)
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 
@@ -267,7 +276,7 @@ export const getConfiguredForms = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unabled to get form from JotForm" + error)
+      logger.error("Unabled to get form from JotForm: " + error)
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 
@@ -296,7 +305,7 @@ export const updateForm = async (req, res) => {
       logger.error("Unabled to update form data" + error)
       return res.status(500).json({ error: 'Internal server error' });  
     }
-  } 
+  }
 }
 
 export const newSubmission = async (req, res) => {

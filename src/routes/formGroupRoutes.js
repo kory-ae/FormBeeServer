@@ -12,12 +12,12 @@ router.post('/formGroup/generateCode',
 
 // Route to get form group
 router.get('/formGroup/:id', 
-    [authenticate, isPaid],
+    [authenticate],
     getFormGroup);
 
 // Route to get form group
 router.get('/formGroups', 
-    [authenticate, isPaid],
+    [authenticate],
     getGroupsByUser);
 
 // Route to add form group

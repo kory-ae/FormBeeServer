@@ -21,6 +21,7 @@ export const createUser = async (req, res) => {
       email,
       password,
       options: {
+        emailRedirectTo: 'http://localhost:5173/login',
         data: {
           account_type_id
         }
@@ -90,6 +91,49 @@ export const getUserView = async (req, res) => {
 
     res.status(200).json({userView})
 
+  } catch (error) {
+    logger.error(`error while trying to get userView ${error}`)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const addUserFormGroup = async (req, res) => {
+  try {
+    const { code } = req.params;
+    const {data, error} = await supabase
+      .from('form_group')
+      .select('id, user_id, user_form_group(id)', )
+      .eq('code', code)
+      .eq('user_form_group.user_id', req.user.id)
+
+      if (error) throw error
+
+      if (data.length !== 1) {
+        if (data.length == 0) {
+          logger.info('trying to access non-existent code')
+          return res.status("400").json({message: "Code does not exist"});
+        }
+        else {
+          logger.error(`Unexpect duplicate codes! Code: ${code} count: ${data.length}`)
+        }
+      }
+
+      if (data[0].user_form_group.length > 0 || data[0].user_id == req.user.id) {
+        return res.status(200).json({message: "already there, or owner"});;
+      }
+
+      const insertData = {
+        form_group_id: data[0].id,
+        user_id: req.user.id
+      }
+
+      const { data: insertResult, error: errorInsert } = await supabase
+        .from("user_form_group")
+        .insert(insertData);
+
+        if (errorInsert) throw errorInsert;
+        
+      return res.status(200).json({message: "added"});
   } catch (error) {
     logger.error(`error while trying to get userView ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
