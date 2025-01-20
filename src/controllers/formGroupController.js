@@ -37,6 +37,12 @@ export const getFormGroup = async (req, res) => {
 
 export const addGroup = async (req, res) => {
     try {
+
+        // object from client probably has forms array
+        delete req.body.forms;
+        //Dont insert zero id
+        delete req.body.id;
+
         const { data, error } = await supabase
             .from('form_group')
             .insert(req.body)
@@ -61,13 +67,22 @@ export const updateGroup = async (req, res) => {
             .single();
         if (error) throw error
     } catch (error) {
-        logger.error('Error inserting form group:', error.message)
+        logger.error('Error updating form group:', error.message)
         res.status(500).json({ error: 'Internal server error' });
     }
 }
 
 export const deleteFormGroup= async (req, res) => {
-
+    try {
+        const {data, error } = await supabase
+            .from('form_group')
+            .delete()
+            .eq('id', req.params.id)
+        if (error) throw error
+    } catch (error) {
+        logger.error('Error deleting form group: ' + error.message)
+        res.status(500).json({ error: 'Internal server error' });
+    }
 }
 
 export const getGroupsByUser = async (req, res) => {
@@ -100,7 +115,7 @@ export const getGroupsByUser = async (req, res) => {
         }
 
         res.status(200).json(allData);
-    }catch (error) {
+    } catch (error) {
         logger.error('Error getting form groups by user:', error.message)
         res.status(500).json({ error: 'Internal server error' });
     }
