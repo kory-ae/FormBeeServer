@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import logger from '../config/logger.js';
+import { link } from 'fs';
 
 export const createUser = async (req, res) => {
   try {
@@ -16,12 +17,23 @@ export const createUser = async (req, res) => {
         error: 'Email already registered' 
       });
     }
+
+    let redirect = `${process.env.CLIENT_HOST}/login`
+
+    const code = req.query.code;
+    let codeData;
+    if (code) {
+      codeData = await getCodeData(code, null);
+      if (codeData) {
+        redirect = redirect + `?code=${code}`
+      }
+    }
     
     const { data: { user }, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: 'http://localhost:5173/login',
+        emailRedirectTo: redirect,
         data: {
           account_type_id
         }
@@ -32,12 +44,19 @@ export const createUser = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
+    let codeAdded = false;
+    if (codeData) {
+      await linkUserFormGroup(codeData.id, user.id)
+      codeAdded = true;
+    }
+
     return res.status(201).json({
       message: 'User created successfully',
       user: {
         id: user.id,
         email: user.email,
-        name: user.user_metadata.name
+        name: user.user_metadata.name,
+        codeAdded: codeAdded
       }
     });
   } catch (error) {
@@ -97,43 +116,64 @@ export const getUserView = async (req, res) => {
   }
 };
 
+async function getCodeData(code, user_id) {
+  
+  let query = supabase
+    .from('form_group')
+    .select('id, user_id, user_form_group(id)', )
+    .eq('code', code)
+
+  if (user_id) {
+      query = query.eq('user_form_group.user_id', user_id)
+  }
+
+  const {data, error} = await query;
+
+  if (error) throw error
+
+  if (data.length !== 1) {
+    if (data.length == 0) {
+      return null;
+    }
+    else {
+      throw new Error(`Unexpect duplicate codes! Code: ${code} count: ${data.length}`)
+    }
+  }
+  else {
+    return data[0];
+  }
+}
+
+async function linkUserFormGroup(form_group_id, user_id) {
+
+  const insertData = {
+    form_group_id: form_group_id,
+    user_id: user_id
+  }
+
+  const { data: insertResult, error: errorInsert } = await supabase
+    .from("user_form_group")
+    .insert(insertData);
+
+  if (errorInsert) throw errorInsert;  
+}
+
 export const addUserFormGroup = async (req, res) => {
   try {
     const { code } = req.params;
-    const {data, error} = await supabase
-      .from('form_group')
-      .select('id, user_id, user_form_group(id)', )
-      .eq('code', code)
-      .eq('user_form_group.user_id', req.user.id)
 
-      if (error) throw error
+    const data = await getCodeData(code, req.user.id)    
+    if(!data) {
+      return res.status("400").json({message: "Code does not exist"});
+    }
 
-      if (data.length !== 1) {
-        if (data.length == 0) {
-          logger.info('trying to access non-existent code')
-          return res.status("400").json({message: "Code does not exist"});
-        }
-        else {
-          logger.error(`Unexpect duplicate codes! Code: ${code} count: ${data.length}`)
-        }
-      }
+    if (data.user_form_group.length > 0 || data.user_id == req.user.id) {
+      return res.status(200).json({message: "already there, or owner"});;
+    }
 
-      if (data[0].user_form_group.length > 0 || data[0].user_id == req.user.id) {
-        return res.status(200).json({message: "already there, or owner"});;
-      }
+    await linkUserFormGroup(data.id, req.user.id);
 
-      const insertData = {
-        form_group_id: data[0].id,
-        user_id: req.user.id
-      }
-
-      const { data: insertResult, error: errorInsert } = await supabase
-        .from("user_form_group")
-        .insert(insertData);
-
-        if (errorInsert) throw errorInsert;
-        
-      return res.status(200).json({message: "added"});
+    return res.status(200).json({message: "added"});
   } catch (error) {
     logger.error(`error while trying to get userView ${error}`)
     return res.status(500).json({ error: 'Internal server error' });

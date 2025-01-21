@@ -1,6 +1,9 @@
 import { supabase } from '../config/supabase.js';
 import { getAccountTypeName } from '../constants/accountTypes.js';
 
+/* =============================================
+  PRETTY SURE THIS IS DEAD CODE 
+  =============================================
 export const updateUserConfig = async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -48,6 +51,7 @@ export const updateUserConfig = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+*/
 
 export const getUserConfig = async (req, res) => {
   try {

@@ -6,6 +6,9 @@ import { ACCOUNT_TYPES } from '../constants/accountTypes.js';
 
 const router = express.Router();
 
+/* =============================================
+  PRETTY SURE THIS IS DEAD CODE 
+  =============================================
 router.put(
   '/users/:user_id/config',
   [
@@ -30,6 +33,7 @@ router.put(
   ],
   updateUserConfig
 );
+*/
 
 router.get(
   '/users/:user_id/config',
