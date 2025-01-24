@@ -18,6 +18,8 @@ export const createUser = async (req, res) => {
         error: 'Email already registered' 
       });
     }
+    
+    let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
     let codeData;
     if (code) {
