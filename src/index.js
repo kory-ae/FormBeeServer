@@ -9,6 +9,7 @@ import formRoutes from './routes/formRoutes.js';
 import jotFormRoutes from './routes/jotFormRoutes.js';
 import formGroupRoutes from './routes/formGroupRoutes.js';
 import jotSubmissionRoutes from './routes/jotSubmissionRoutes.js';
+import testRoutes from './routes/testRoutes.js';
 import { pingSupabase} from './services/supabasePing.js'
 
 
@@ -27,10 +28,10 @@ app.use('/api', formGroupRoutes);
 app.use('/api', formRoutes);
 app.use('/api', jotFormRoutes);
 app.use('/api', jotSubmissionRoutes);
+app.use('/api', testRoutes)
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-
   res.status(200).json({ status: 'ok' });
 });
 
@@ -41,15 +42,7 @@ app.get('/instrument', async (req, res) => {
   res.status(200).json(stats)
 });
 
-
-/*app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup('swagger-output.json')
-);*/
-
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  logger.info(" ... from winston!!!")
+  logger.info("Info logging from winston!!!")
 });

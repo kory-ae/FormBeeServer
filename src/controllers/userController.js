@@ -6,29 +6,30 @@ export const createUser = async (req, res) => {
   try {
     const { email, password, account_type_id } = req.body;
 
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: existError } = await supabase
     .from('users')
     .select('email')
-    .eq('email', email)
-    .single();
+    .eq('email', email.toLowerCase())
+   
+    if (existError) throw existError
 
-    if (existingUser) {
+    if (existingUser.length == 1) {
       return res.status(409).json({ 
         error: 'Email already registered' 
       });
     }
-
-    let redirect = `${process.env.CLIENT_HOST}/login`
-
     const code = req.query.code;
     let codeData;
     if (code) {
+      logger.debug(`user had code ${code}`)
       codeData = await getCodeData(code, null);
       if (codeData) {
         redirect = redirect + `?code=${code}`
       }
     }
-    
+
+    logger.info(`redirect for login: ${redirect}`)
+
     const { data: { user }, error } = await supabase.auth.signUp({
       email,
       password,
@@ -41,6 +42,7 @@ export const createUser = async (req, res) => {
     });
 
     if (error) {
+      logger.error(`error after supabase signup: ${error}`)
       return res.status(400).json({ error: error.message });
     }
 
@@ -60,6 +62,8 @@ export const createUser = async (req, res) => {
       }
     });
   } catch (error) {
+    logger.error("Error while creating user...")
+    logger.error(error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

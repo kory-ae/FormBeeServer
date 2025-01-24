@@ -66,19 +66,21 @@ export const updateGroup = async (req, res) => {
             .eq('id', req.body.id)
             .single();
         if (error) throw error
+        return res.status(201).json({msg: "ok"})
     } catch (error) {
         logger.error('Error updating form group:', error.message)
         res.status(500).json({ error: 'Internal server error' });
     }
 }
 
-export const deleteFormGroup= async (req, res) => {
+export const deleteFormGroup = async (req, res) => {
     try {
         const {data, error } = await supabase
             .from('form_group')
             .delete()
             .eq('id', req.params.id)
         if (error) throw error
+        return res.status(202).jsoh({msg: "ok"})
     } catch (error) {
         logger.error('Error deleting form group: ' + error.message)
         res.status(500).json({ error: 'Internal server error' });

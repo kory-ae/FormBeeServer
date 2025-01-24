@@ -26,9 +26,14 @@ async function addSubmissionMetaData(userId, submissionData) {
   `)
   .in('submission_id', submissionData.map(sub => sub.id))
 
+  if (metaSubError) {
+    logger.error("Error while finding metaSubData...")
+    logger.error(metaSubData)
+  }
+
   //if no matching records in submission, we're done.
   if ( metaSubData.length === 0 ) return
-
+  
   const parentJotFormId = metaSubData[0]?.forms?.form_group.forms.form_id;
   const header_field = metaSubData[0]?.forms?.form_group.forms.header_field;
   const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId)) : [];
@@ -40,9 +45,9 @@ async function addSubmissionMetaData(userId, submissionData) {
   submissionData.forEach( sub => {
 
     //get parent 
-    const parentSubId = metaSubData.find(x=> x.submission_id == sub.id).parent_submission_id;
-    if (parentSubId) {
-      const parentSub = parentSubmissions.find(x => x.id == parentSubId);
+    const metaSub = metaSubData.find(x=> x.submission_id == sub.id)
+    if(metaSub?.parent_submission_id) {
+      const parentSub = parentSubmissions.find(x => x.id == metaSub?.parent_submission_id);
       if (parentSub) {
         sub.__fbHeaderValue = parentSub.answers[headerKey].answer;
       }
@@ -60,9 +65,8 @@ export async function linkUserSubmission(submissionData) {
       .insert(submissionData)
       .select()
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
+    
     return data
   } catch (error) {
     logger.error('Error inserting submission row:', error.message)
@@ -83,8 +87,7 @@ export const getFormOwner = async (formId) => {
     .select("user_id")
     .eq("form_id", formId)   
 
-  if (error) 
-    throw error;
+  if (error) throw error;
 
   return data[0].user_id;
 }
@@ -115,6 +118,7 @@ export const deleteForm = async (req, res) => {
         .delete()
         .eq('form_id', formId)
 
+      if (error) throw error
       return res.status(204);
     }
     catch (error) {
@@ -132,6 +136,7 @@ export const getJotFormSubmissions = async (req, res) => {
       if (!includeDelete){
         data = data.filter(submission => submission.status !== "DELETED")
       }
+      
       if (!req.user.isPaid) {
         logger.info(`User is free user, filtering list to user's submissions`)
         const {data: submissionData, error } = await supabase
@@ -255,7 +260,6 @@ export const getConfiguredForms = async (req, res) => {
 
     //Get jot forms to warn about removed forms
     const userIdList = [... new Set(data.map(x => x.user_id))]
-    //await userIdList.forEach(async (user_id) => {
     for(const user_id of userIdList) {
       const jotForms = (await getForms(user_id)).filter(f => f.status == 'ENABLED')
       data.forEach(configuredForm => {
