@@ -33,7 +33,8 @@ export const authenticate = async (req, res, next) => {
     //logger.debug("...auth done")
     next();
   } catch (error) {
-    logger.error('auth failed internally. ' + error)
+    logger.error('Auth failed internally.')
+    logger.error(error)
     res.status(500).json({ error: 'Authentication failed' });
   }
 };

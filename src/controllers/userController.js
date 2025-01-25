@@ -19,6 +19,7 @@ export const createUser = async (req, res) => {
       });
     }
     
+    /*
     let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
     let codeData;
@@ -29,7 +30,7 @@ export const createUser = async (req, res) => {
         redirect = redirect + `?code=${code}`
       }
     }
-
+    */
     logger.info(`redirect for login: ${redirect}`)
 
     const { data: { user }, error } = await supabase.auth.signUp({
@@ -38,13 +39,15 @@ export const createUser = async (req, res) => {
       options: {
         emailRedirectTo: redirect,
         data: {
-          account_type_id
+          account_type_id,
+          redirect
         }
       }
     });
 
     if (error) {
       logger.error(`error after supabase signup: ${error}`)
+      logger.error(error)
       return res.status(400).json({ error: error.message });
     }
 
@@ -64,7 +67,7 @@ export const createUser = async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error("Error while creating user...")
+    logger.error("Error while creating user (probably while linking user form group)...")
     logger.error(error)
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -92,7 +95,8 @@ export const updateUserConfig = async (req, res) => {
       }  
     return res.status(200).json({"message": "ok"});
   } catch (error) {
-    logger.error(`error while updating userConfig: ${error}`)
+    logger.error('error while updating userConfig:')
+    logger.error(error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

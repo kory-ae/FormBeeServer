@@ -34,22 +34,24 @@ async function addSubmissionMetaData(userId, submissionData) {
   //if no matching records in submission, we're done.
   if ( metaSubData.length === 0 ) return
   
-  const parentJotFormId = metaSubData[0]?.forms?.form_group.forms.form_id;
-  const header_field = metaSubData[0]?.forms?.form_group.forms.header_field;
+  const parentJotFormId = metaSubData[0]?.forms?.form_group?.forms?.form_id;
+  const header_field = metaSubData[0]?.forms?.form_group?.forms?.header_field;
   const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId)) : [];
     
+  if (parentSubmissions.length == 0){
+    return;
+  }
+
   const parentKeys = Object.keys(parentSubmissions[0].answers);
-
   const headerKey = parentKeys.find(k => parentSubmissions[0].answers[k].text == header_field);
-
   submissionData.forEach( sub => {
-
     //get parent 
     const metaSub = metaSubData.find(x=> x.submission_id == sub.id)
     if(metaSub?.parent_submission_id) {
       const parentSub = parentSubmissions.find(x => x.id == metaSub?.parent_submission_id);
       if (parentSub) {
-        sub.__fbHeaderValue = parentSub.answers[headerKey].answer;
+        const rec = parentSub.answers[headerKey];
+        sub.__fbHeaderValue = rec.prettyFormat || rec.answer;
       }
     }
     //email much easier
@@ -75,10 +77,14 @@ export async function linkUserSubmission(submissionData) {
 }
 
 async function getConfiguredFormsByUser (userId) {
-  return await supabase
+  const {data, error} = await supabase
     .from("forms")
     .select("*")
     .eq("user_id", userId)
+  
+    if (error) throw error
+  
+  return {data, error}
 }
 
 export const getFormOwner = async (formId) => {
@@ -231,7 +237,8 @@ export const addFormFromJot = async (req, res) => {
       .single();
 
     if (error) {
-      logger.error(`error while adding user to jot form: ${error}`);
+      logger.error(`error while adding forms records`)
+      logger.error(error);
       throw error;
     }
     return res.status(200).json({"message": "ok"});
@@ -242,7 +249,8 @@ export const addFormFromJot = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unable to add form from JotForm: " + error)
+      logger.error("Unable to add form from JotForm: ")
+      logger.error(error);
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 
@@ -252,10 +260,27 @@ export const getConfiguredForms = async (req, res) => {
 
   try {
     const userId = req.user.id;
-    const { data, error } = (req.user.isPaid) ? await getConfiguredFormsByUser(userId) : await getConfiguredFormsByAssociation(req.user)
+    
+    //this can be cleaned up/reverted now that i know there issue.
+    //It was just returning data, but now it should return data/error
+    let data, error
+    if (req.user.isPaid) {
+      const {data: pdData, error: pdError } = await getConfiguredFormsByUser(userId);
+      data =  pdData;
+      error = pdError;
+    } else {
+      const {data: pdData, error: pdError } = await getConfiguredFormsByAssociation(req.user)
+      data =  pdData;
+      error = pdError;
+    }
     if (error) {
       logger.error(`error while getting configured forms: ${error}`);
       throw error;
+    }
+
+    
+    if (!data || data.length == 0) {
+      return res.status(200).json({ data: [] })
     }
 
     //Get jot forms to warn about removed forms
@@ -280,7 +305,8 @@ export const getConfiguredForms = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unabled to get form from JotForm: " + error)
+      logger.error("Unable to get configured forms: ");
+      logger.error(error);
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 
@@ -306,7 +332,8 @@ export const updateForm = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unabled to update form data" + error)
+      logger.error("Unable to update form data")
+      logger.error(error);
       return res.status(500).json({ error: 'Internal server error' });  
     }
   }

@@ -72,7 +72,8 @@ export const getJotFormQuestions = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unabled to get form from JotForm" + error)
+      logger.error(" Unable to get questions from JotForm")
+      logger.error(error)
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 

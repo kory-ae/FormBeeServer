@@ -1,6 +1,6 @@
 import winston from 'winston';
 import 'winston-daily-rotate-file';
-
+const { format } = winston
 // Define log levels
 const levels = {
   error: 0,
@@ -11,22 +11,20 @@ const levels = {
 };
 
 // Define Winston format
-const format = winston.format.printf(({ level, message, timestamp }) => {
-  // Heroku timestamps are automatically added, so we don't need to include them
-  return `${level}: ${message}`;
-});
+
+const logFormat = format.combine(
+  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  format.errors({ stack: true }),
+  format.splat(),
+  format.json()
+);
 
 const logger = winston.createLogger({
   // Log level hierarchy: error > warn > info > verbose > debug > silly
   //level: process.env.LOG_LEVEL || 'info',
   level: 'debug',
   
-  // Use Heroku-friendly format
-  format: winston.format.combine(
-    winston.format.splat(),
-    winston.format.simple(),
-    format
-  ),
+  format: logFormat,
   
   transports: [
     // Console transport for Heroku log drain

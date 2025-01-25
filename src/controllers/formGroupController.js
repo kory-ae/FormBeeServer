@@ -31,6 +31,7 @@ export const generateCode = async (req, res) => {
     return res.send({ code: result });
 }
 
+// Dead code?
 export const getFormGroup = async (req, res) => {
 
 }

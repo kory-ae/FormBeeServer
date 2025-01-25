@@ -86,7 +86,14 @@ export const getGroupParentSubmission = async (req, res) => {
       for (const field of data.forms.visible_fields) {
         const id = keySet.find(x => submission.answers[x].text == field)
         const fieldName = formatField(field)
-        record[fieldName] = (!id) ? "ERR!" : submission.answers[id].answer ?? ""
+        let value = "N/A"
+        if (id) {
+          const row = submission.answers[id];
+          if (row) {
+            value = row.prettyFormat || row.answer 
+          }
+        }
+        record[fieldName] = value;
       }
       return record;
     });
