@@ -19,7 +19,7 @@ export const createUser = async (req, res) => {
       });
     }
     
-    /*
+    
     let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
     let codeData;
@@ -30,7 +30,11 @@ export const createUser = async (req, res) => {
         redirect = redirect + `?code=${code}`
       }
     }
-    */
+    
+    //redirect = "http://localhost:5173";
+    //redirect = "https://form-bee-client-4e2cb24cb277.herokuapp.com/login";
+    //redirect = "https://testing.dmaexdsc9ir2i.amplifyapp.com/login";
+
     logger.info(`redirect for login: ${redirect}`)
 
     const { data: { user }, error } = await supabase.auth.signUp({
