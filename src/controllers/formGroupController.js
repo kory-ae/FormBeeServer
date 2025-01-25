@@ -80,7 +80,7 @@ export const deleteFormGroup = async (req, res) => {
             .delete()
             .eq('id', req.params.id)
         if (error) throw error
-        return res.status(202).jsoh({msg: "ok"})
+        return res.status(202).json({msg: "ok"})
     } catch (error) {
         logger.error('Error deleting form group: ' + error.message)
         res.status(500).json({ error: 'Internal server error' });
