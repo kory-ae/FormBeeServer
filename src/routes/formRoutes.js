@@ -2,7 +2,7 @@ import express from 'express';
 import { query, body } from 'express-validator';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
-import { deleteForm, getJotFormSubmissions, addFormFromJot, getFormUsers, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
+import { deleteForm, getJotFormSubmissions, addForm, getFormUsers, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
 
 const router = express.Router();
 
@@ -41,14 +41,11 @@ router.get(
 router.post(
     '/form/',
     [
-      body('jotFormId')
-        .isNumeric({ min: 200000000000000 }),
       authenticate, 
       isPaid
     ],
-    addFormFromJot);
-
-router.get('/form/:formId/userList', [authenticate, isPaid], getFormUsers);
+    addForm
+);
 
 router.get(
     '/forms', 

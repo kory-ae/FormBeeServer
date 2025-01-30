@@ -65,9 +65,10 @@ export const updateGroup = async (req, res) => {
             .from('form_group')
             .update(req.body)
             .eq('id', req.body.id)
+            .select('*')
             .single();
         if (error) throw error
-        return res.status(201).json({msg: "ok"})
+        return res.status(200).json(data)
     } catch (error) {
         logger.error('Error updating form group:', error.message)
         res.status(500).json({ error: 'Internal server error' });
@@ -81,7 +82,7 @@ export const deleteFormGroup = async (req, res) => {
             .delete()
             .eq('id', req.params.id)
         if (error) throw error
-        return res.status(202).json({msg: "ok"})
+        return res.status(204).json();
     } catch (error) {
         logger.error('Error deleting form group: ' + error.message)
         res.status(500).json({ error: 'Internal server error' });
@@ -91,7 +92,6 @@ export const deleteFormGroup = async (req, res) => {
 export const getGroupsByUser = async (req, res) => {
 
     try{
-
         //this implies they are a paid user
         //todo: only do this part if they're a paid user
         const { data, error } = await supabase

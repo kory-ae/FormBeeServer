@@ -115,24 +115,6 @@ async function getConfiguredFormsByAssociation (user) {
   return {data, error};
 }
 
-export const deleteForm = async (req, res) => {
-  try {
-      const { formId } = req.params;
-      
-      const {data, error} = await supabase
-        .from('forms')
-        .delete()
-        .eq('form_id', formId)
-
-      if (error) throw error
-      return res.status(204);
-    }
-    catch (error) {
-      logger.error(`error while deleting jot form: ${error}`)
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-};
-
 export const getJotFormSubmissions = async (req, res) => {
   try {
       const { formId } = req.params;
@@ -217,31 +199,35 @@ export const getFormUsers = async (req, res) => {
   }
 }
 
-export const addFormFromJot = async (req, res) => {
-
+export const addForm = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { jotFormId } = req.body;
-    const jotFormData = await getForm(userId, jotFormId);
+    const form = {...req.body};
+    form.user_id = req.user.id;
 
-    const formBeeData = {
-      form_id: jotFormData.id,
-      title: jotFormData.title,
-      user_id: userId
+    //I guess we leave this just as a test that this user can access this jot form
+    await getForm(userId, form.form_id);
+
+    const {data: formExistData, error: formExistError} = await supabase
+      .from('forms')
+      .select('*')
+      .eq('form_id', form.form_id)
+
+    if (formExistData.length > 0 || formExistError) {
+      throw new Error("Form already exists in FormBee")
     }
 
     const { data, error } = await supabase
       .from('forms')
-      .insert(formBeeData)
-      .select()
+      .insert(form)
+      .select('*')
       .single();
 
     if (error) {
-      logger.error(`error while adding forms records`)
-      logger.error(error);
+      logger.error(`error while adding forms records %j`, error);
       throw error;
     }
-    return res.status(200).json({"message": "ok"});
+    return res.status(200).json(data);
   }
   catch (error)
   {
@@ -249,8 +235,7 @@ export const addFormFromJot = async (req, res) => {
       return res.status(401).json({ error: 'This request is not valid because of an internal \'unauthorized\' response'})
     }
     else {
-      logger.error("Unable to add form from JotForm: ")
-      logger.error(error);
+      logger.error("Unable to add form from JotForm: %j", error)
       return res.status(500).json({ error: 'Internal server error' });  
     }
   } 
@@ -280,7 +265,7 @@ export const getConfiguredForms = async (req, res) => {
 
     
     if (!data || data.length == 0) {
-      return res.status(200).json({ data: [] })
+      return res.status(200).json([])
     }
 
     //Get jot forms to warn about removed forms
@@ -297,7 +282,7 @@ export const getConfiguredForms = async (req, res) => {
         }
       })
     }
-    return res.status(200).json({ data })
+    return res.status(200).json(data)
   }
   catch (error)
   {
@@ -320,7 +305,8 @@ export const updateForm = async (req, res) => {
         .from('forms')
         .update(formData)
         .eq("form_id", form_id)
-        .select();
+        .select('*')
+        .single();
 
     if (error) throw error;
 
@@ -353,4 +339,23 @@ export const newSubmission = async (req, res) => {
     logger.error(`error while creating a new submission: ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+export const deleteForm = async (req, res) => {
+  try {
+      const { formId } = req.params;
+      
+      const {data, error} = await supabase
+        .from('forms')
+        .delete()
+        .eq('form_id', formId)
+
+      if (error) throw error
+      return res.status(204).json();
+    }
+    catch (error) {
+      logger.error(`error while deleting jot form:`)
+      logger.error(error)
+      return res.status(500).json({ error: 'Internal server error' });
+    }
 };
