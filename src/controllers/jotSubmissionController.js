@@ -64,7 +64,7 @@ export const getGroupParentSubmission = async (req, res) => {
 
     const {data, error} = await supabase
       .from("form_group")
-      .select("parent_form_id, forms!form_group_parent_form_id_fkey(form_id, visible_fields, header_field)")
+      .select("parent_form_id, parent_read_only, forms!form_group_parent_form_id_fkey(form_id, visible_fields, header_field)")
       .eq("id", formGroupId)
       .single();
 
@@ -75,28 +75,39 @@ export const getGroupParentSubmission = async (req, res) => {
     const userId = await formGetFormByUser(data.forms.form_id);
     const submissions = await getSubmissionByForm(userId, data.forms.form_id)
 
-    if (submissions.length == 0) {
-      return res.status(400).json({error: "No submissions found"})
+    if (submissions.length == 0 ) {
+      if (data.parent_read_only) {
+        return res.status(400).json({error: "No submissions found"})
+      } else {
+        const resData = {
+          headers: data.forms.visible_fields,
+          submissions: [],
+          header_field: formatField(data.forms.header_field)
+        }
+        return res.status(200).json(resData)
+      }
     }
     const keySet = Object.keys(submissions[0].answers);
-    const formattedData = submissions.map(submission => {
-      let record = {
-        id: submission.id
-      }
-      for (const field of data.forms.visible_fields) {
-        const id = keySet.find(x => submission.answers[x].text == field)
-        const fieldName = formatField(field)
-        let value = "N/A"
-        if (id) {
-          const row = submission.answers[id];
-          if (row) {
-            value = row.prettyFormat || row.answer 
-          }
+    const formattedData = submissions
+      .filter(submission => submission.status !== "DELETED")    
+      .map(submission => {
+        let record = {
+          id: submission.id
         }
-        record[fieldName] = value;
-      }
-      return record;
-    });
+        for (const field of data.forms.visible_fields) {
+          const id = keySet.find(x => submission.answers[x].text == field)
+          const fieldName = formatField(field)
+          let value = "N/A"
+          if (id) {
+            const row = submission.answers[id];
+            if (row) {
+              value = row.prettyFormat || row.answer 
+            }
+          }
+          record[fieldName] = value;
+        }
+        return record;
+      });
 
     return res.status(200).json({
       headers: data.forms.visible_fields,
