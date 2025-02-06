@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const supabaseUrl = 'https://eciirqwvjhbjdsvigpeq.supabase.co'
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SVC_KEY;
 
 const codeData = JSON.parse(fs.readFileSync('./codes.json', 'utf8'));
 const userKey = process.argv.slice(2)[0];

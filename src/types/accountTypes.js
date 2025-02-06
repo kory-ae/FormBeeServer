@@ -1,6 +1,7 @@
 export const ACCOUNT_TYPES = {
     PAID: 1,
     FREE: 2,
+    ANON: 3,
     NOT_CONFIGURED: -1
   };
   

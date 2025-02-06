@@ -1,6 +1,5 @@
 import { supabase } from '../config/supabase.js';
 import logger from '../config/logger.js';
-import { link } from 'fs';
 
 export const createUser = async (req, res) => {
   try {
@@ -18,7 +17,6 @@ export const createUser = async (req, res) => {
         error: 'Email already registered' 
       });
     }
-    
     
     let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
@@ -134,7 +132,7 @@ async function getCodeData(code, user_id) {
   
   let query = supabase
     .from('form_group')
-    .select('id, user_id, user_form_group(id)', )
+    .select('id, user_id, parent_form_id, user_form_group(id)', )
     .eq('code', code)
 
   if (user_id) {
@@ -189,7 +187,15 @@ export const addUserFormGroup = async (req, res) => {
 
     return res.status(200).json({message: "added"});
   } catch (error) {
-    logger.error(`error while trying to get userView ${error}`)
+    logger.error(`error while trying to add user to FormGroup ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const validateCode = async (req, res) => {
+  const data = await getCodeData(req.params.code, null)
+  if (data == null) {
+    return res.status(403).json({message: 'unknown code'})
+  }
+  return res.status(200).json(data);
+}
