@@ -29,7 +29,6 @@ function formatJotQuestions (questions) {
     }
   })
   .sort((a,b) => parseInt(a.order) - parseInt(b.order))
-
 }
 
 export const getJotForm = async (req, res) => {

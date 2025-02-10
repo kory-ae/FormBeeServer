@@ -1,5 +1,8 @@
 import { supabase } from '../config/supabase.js';
 import logger from '../config/logger.js';
+import { isPaid } from '../middleware/auth.js';
+import { ACCOUNT_TYPES } from '../types/accountTypes.js';
+import { queryFormGroups } from './formGroupController.js';
 
 export const createUser = async (req, res) => {
   try {
@@ -105,22 +108,26 @@ export const updateUserConfig = async (req, res) => {
 
 export const getUserView = async (req, res) => {
   try {
-      const {data, error} = await supabase
-        .from('user_config')
-        .select('account_type_id, jotform_key')
-        .eq('user_id', req.user.id)
-        .single()
+    const {data, error} = await supabase
+      .from('user_config')
+      .select('account_type_id, jotform_key')
+      .eq('user_id', req.user.id)
+      .single()
 
-        if (error) throw error
+    if (error) throw error
 
-        const userView = {
-          id: req.user.id,
-          email: req.user.email,
-          account_type_id: data.account_type_id,
-          jotform_key: data.jotform_key
-        }
+    const formGroups = await queryFormGroups(req.user.id);
 
-    res.status(200).json({userView})
+    const userView = {
+      id: req.user.id,
+      email: req.user.email,
+      account_type_id: data.account_type_id,
+      isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
+      isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
+      formGroups: formGroups,
+      jotform_key: data.jotform_key
+    }
+    res.status(200).json(userView)
 
   } catch (error) {
     logger.error(`error while trying to get userView ${error}`)

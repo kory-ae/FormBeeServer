@@ -33,7 +33,6 @@ export const generateCode = async (req, res) => {
 
 // Dead code?
 export const getFormGroup = async (req, res) => {
-
 }
 
 export const addGroup = async (req, res) => {
@@ -89,35 +88,41 @@ export const deleteFormGroup = async (req, res) => {
     }
 }
 
+export const queryFormGroups = async (userId) => {
+
+    //this implies they are a paid user
+    //todo: only do this part if they're a paid user
+    //this may not be true, we may have "free" level users that can create groups
+    const { data, error } = await supabase
+    .from('form_group')
+    .select('*')
+    .eq('user_id', userId);
+    
+    if (error) throw error
+    
+    const { data: byCodeData, error: byCodeError } = await supabase
+    .from('user_form_group')
+    .select('*, form_group(*)')
+    .eq('user_id', userId)
+    
+    if (byCodeError) throw byCodeError
+    
+    let allData = data;
+    if (byCodeData.length > 0){
+     byCodeData
+     .filter(x => x.form_group)
+     .forEach(x => {
+        allData = allData.concat(x.form_group)
+     })
+    }
+    return allData;
+}
+
 export const getGroupsByUser = async (req, res) => {
 
-    try{
-        //this implies they are a paid user
-        //todo: only do this part if they're a paid user
-        const { data, error } = await supabase
-            .from('form_group')
-            .select('*')
-            .eq('user_id', req.user.id);
-
-        if (error) throw error
-
-        const { data: byCodeData, error: byCodeError } = await supabase
-            .from('user_form_group')
-            .select('*, form_group(*)')
-            .eq('user_id', req.user.id)
-
-        if (byCodeError) throw byCodeError
-
-        let allData = data;
-        if (byCodeData.length > 0){
-             byCodeData
-             .filter(x => x.form_group)
-             .forEach(x => {
-                allData = allData.concat(x.form_group)
-             })
-        }
-
-        res.status(200).json(allData);
+    try {
+        const data = await queryFormGroups(req.user.id)
+        res.status(200).json(data);
     } catch (error) {
         logger.error('Error getting form groups by user:', error.message)
         res.status(500).json({ error: 'Internal server error' });
