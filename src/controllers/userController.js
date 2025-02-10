@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabase.js';
 import logger from '../config/logger.js';
-import { link } from 'fs';
+import { isPaid } from '../middleware/auth.js';
+import { ACCOUNT_TYPES } from '../types/accountTypes.js';
+import { queryFormGroups } from './formGroupController.js';
 
 export const createUser = async (req, res) => {
   try {
@@ -18,7 +20,6 @@ export const createUser = async (req, res) => {
         error: 'Email already registered' 
       });
     }
-    
     
     let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
@@ -107,22 +108,26 @@ export const updateUserConfig = async (req, res) => {
 
 export const getUserView = async (req, res) => {
   try {
-      const {data, error} = await supabase
-        .from('user_config')
-        .select('account_type_id, jotform_key')
-        .eq('user_id', req.user.id)
-        .single()
+    const {data, error} = await supabase
+      .from('user_config')
+      .select('account_type_id, jotform_key')
+      .eq('user_id', req.user.id)
+      .single()
 
-        if (error) throw error
+    if (error) throw error
 
-        const userView = {
-          id: req.user.id,
-          email: req.user.email,
-          account_type_id: data.account_type_id,
-          jotform_key: data.jotform_key
-        }
+    const formGroups = await queryFormGroups(req.user.id);
 
-    res.status(200).json({userView})
+    const userView = {
+      id: req.user.id,
+      email: req.user.email,
+      account_type_id: data.account_type_id,
+      isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
+      isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
+      formGroups: formGroups,
+      jotform_key: data.jotform_key
+    }
+    res.status(200).json(userView)
 
   } catch (error) {
     logger.error(`error while trying to get userView ${error}`)
@@ -134,7 +139,7 @@ async function getCodeData(code, user_id) {
   
   let query = supabase
     .from('form_group')
-    .select('id, user_id, user_form_group(id)', )
+    .select('id, user_id, parent_form_id, user_form_group(id)', )
     .eq('code', code)
 
   if (user_id) {
@@ -189,7 +194,15 @@ export const addUserFormGroup = async (req, res) => {
 
     return res.status(200).json({message: "added"});
   } catch (error) {
-    logger.error(`error while trying to get userView ${error}`)
+    logger.error(`error while trying to add user to FormGroup ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const validateCode = async (req, res) => {
+  const data = await getCodeData(req.params.code, null)
+  if (data == null) {
+    return res.status(403).json({message: 'unknown code'})
+  }
+  return res.status(200).json(data);
+}

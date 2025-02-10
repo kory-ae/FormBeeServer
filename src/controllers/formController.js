@@ -107,12 +107,22 @@ async function getConfiguredFormsByAssociation (user) {
 
   if (error1) throw error1;
 
-  const {data, error} = await supabase
+  const {data: viewData, error} = await supabase
     .from("forms")
-    .select("*")
+    .select("*, form_group!forms_form_group_id_fkey(parent_form_id)")
     .in("form_group_id", groupList.map(x => x.form_group_id))
 
-  return {data, error};
+    //In supabase, how do you get a flat object back instead of a nested one?
+    let data = [...viewData];
+    if(data.length > 0 ){
+      data = viewData.map(form => {
+        const tmp = {...form};
+        delete tmp.form_group;
+        tmp["parent_form_id"] = form.form_group?.parent_form_id;
+        return tmp;
+      })
+    }
+    return {data, error};
 }
 
 export const getJotFormSubmissions = async (req, res) => {
@@ -246,7 +256,7 @@ export const getConfiguredForms = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    //this can be cleaned up/reverted now that i know there issue.
+    //this can be cleaned up/reverted now that i know the issue.
     //It was just returning data, but now it should return data/error
     let data, error
     if (req.user.isPaid) {

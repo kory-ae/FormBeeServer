@@ -33,7 +33,6 @@ export const getJotFormKeyByForm = async (formId) => {
 
 export const isPaidAccount = async (userId) => {
     
-    
     const { data, error } = await supabase
         .from('user_config')
         .select('account_type_id')

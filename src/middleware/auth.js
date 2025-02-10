@@ -16,21 +16,21 @@ export const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    //logger.debug("get user done...")
     if (error) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     req.user = user;
-    req.user.isPaid = await isPaidAccount(req.user.id);
-    //logger.debug("is paid done...")
-    if (req.user.isPaid == ACCOUNT_TYPES.NOT_CONFIGURED) {
-      //logger.debug("config needed...")
-      const data = await configureUser(user)
+
+    if (!user.is_anonymous) {
       req.user.isPaid = await isPaidAccount(req.user.id);
-      //logger.debug(".. config done")
+      if (req.user.isPaid == ACCOUNT_TYPES.NOT_CONFIGURED) {
+        const data = await configureUser(user)
+        req.user.isPaid = await isPaidAccount(req.user.id);
+      }
+    } else {
+      req.user.isPaid = false;
     }
-    //logger.debug("...auth done")
     next();
   } catch (error) {
     logger.error('Auth failed internally.')

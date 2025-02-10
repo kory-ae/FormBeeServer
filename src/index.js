@@ -13,7 +13,7 @@ import testRoutes from './routes/testRoutes.js';
 import { pingSupabase} from './services/supabasePing.js'
 
 
-dotenv.config();
+dotenv.config({path: process.env.ENV_FILE || '.env'} );
 
 const app = express();
 const port = process.env.PORT || 3000;
