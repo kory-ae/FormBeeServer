@@ -110,7 +110,7 @@ export const getUserView = async (req, res) => {
   try {
     const formGroups = await queryFormGroups(req.user.id);
     let userView;
-    if (req.user.isAnonymous) {
+    if (req.user.is_anonymous) {
       userView = {
         id: req.user.id,
         email: req.user.email,
