@@ -108,27 +108,38 @@ export const updateUserConfig = async (req, res) => {
 
 export const getUserView = async (req, res) => {
   try {
-    const {data, error} = await supabase
+    const formGroups = await queryFormGroups(req.user.id);
+    let userView;
+    if (req.user.isAnonymous) {
+      userView = {
+        id: req.user.id,
+        email: req.user.email,
+        account_type_id: ACCOUNT_TYPES.ANON,
+        isConfigured: true,
+        isPaid: false,
+        formGroups: formGroups,
+        jotform_key: null
+      }
+    } else {
+      const {data, error} = await supabase
       .from('user_config')
       .select('account_type_id, jotform_key')
       .eq('user_id', req.user.id)
       .single()
 
-    if (error) throw error
+      const formGroups = await queryFormGroups(req.user.id);
 
-    const formGroups = await queryFormGroups(req.user.id);
-
-    const userView = {
-      id: req.user.id,
-      email: req.user.email,
-      account_type_id: data.account_type_id,
-      isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
-      isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
-      formGroups: formGroups,
-      jotform_key: data.jotform_key
+      userView = {
+        id: req.user.id,
+        email: req.user.email,
+        account_type_id: data.account_type_id,
+        isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
+        isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
+        formGroups: formGroups,
+        jotform_key: data.jotform_key
+      }
     }
     res.status(200).json(userView)
-
   } catch (error) {
     logger.error(`error while trying to get userView ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
