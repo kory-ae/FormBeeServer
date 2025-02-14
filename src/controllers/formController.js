@@ -77,13 +77,22 @@ export async function linkUserSubmission(submissionData) {
 }
 
 async function getConfiguredFormsByUser (userId) {
-  const {data, error} = await supabase
+  const {data : viewData, error} = await supabase
     .from("forms")
-    .select("*")
+    .select("*, form_group!forms_form_group_id_fkey(parent_form_id)")
     .eq("user_id", userId)
   
-    if (error) throw error
+  if (error) throw error
   
+  let data = [...viewData];
+  if(data.length > 0 ){
+    data = viewData.map(form => {
+      const tmp = {...form};
+      delete tmp.form_group;
+      tmp["parent_form_id"] = form.form_group?.parent_form_id;
+      return tmp;
+    })
+  }
   return {data, error}
 }
 

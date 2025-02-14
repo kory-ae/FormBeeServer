@@ -1,4 +1,4 @@
-import { getForms, getForm, getSubmissionByForm,  getFormQuestions } from '../services/jotAPIService.js';
+import { getForms, getForm, getFormQuestions } from '../services/jotAPIService.js';
 import { getFormOwner } from './formController.js'
 import logger from '../config/logger.js';
 //import { supabase } from '../config/supabase.js';

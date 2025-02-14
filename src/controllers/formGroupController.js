@@ -128,3 +128,16 @@ export const getGroupsByUser = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 }
+
+export const userHasGroupAccess = async (userId, formGroupId) => {
+    const {data, error} = await supabase
+        .from('form_group')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('id', formGroupId)
+
+    if (error) throw error
+
+    const hasAccess = (data.length > 0)
+    return hasAccess;
+}

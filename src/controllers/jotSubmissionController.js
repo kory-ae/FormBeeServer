@@ -1,6 +1,7 @@
 import { getSubmission, deleteSubmission, getSubmissionByForm } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
+import { userHasGroupAccess } from '../controllers/formGroupController.js'
 import { getFormOwner as formGetFormByUser } from '../controllers/formController.js';
 
 async function getFormOwner (submission_id) {
@@ -27,6 +28,8 @@ export const getJotSubmission = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 export const deleteJotSubmission = async (req, res) => {
   try {
@@ -109,8 +112,12 @@ export const getGroupParentSubmission = async (req, res) => {
         return record;
       });
 
+    const headerSet = data.forms.visible_fields.map(f => {
+      return {headerName: f, fieldName: formatField(f)}
+    })
+
     return res.status(200).json({
-      headers: data.forms.visible_fields,
+      headers: headerSet,
       submissions: formattedData,
       header_field: formatField(data.forms.header_field)
     });
@@ -118,5 +125,73 @@ export const getGroupParentSubmission = async (req, res) => {
   catch (error) {
     logger.error(`error while getting group parent submission: ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const countJotSubmissions = async (req, res) => {
+
+  const userId = req.user.id;
+  const { form_id } = req.query;
+  try {
+    const data = await getSubmissionByForm(userId, form_id)
+    return res.status(200).json({count: data.length})
+  }catch (e) {
+    return res.status(500).json({message: "Interal error while getting submission count"});
+  }
+}
+
+export const countChildSubmission = async (req, res) => {
+  const userId = req.user.id;
+  const { form_group_id } = req.query;
+  try {
+
+    const hasAccess = await userHasGroupAccess(userId, form_group_id);
+    if (!hasAccess) {
+      return res.status(403).json({message: "User does not have access to specified group"})
+    }
+
+/*    const {data, error } = await supabase
+      .from("form_group")
+      .select("id, form!forms_form_group_id_fkey(*), submission!inner(*)", {count: 'exact'})
+      .eq("id", form_group_id)   */
+
+    const {data: fg_data, error: fg_error } = await supabase
+    .from("form_group")
+    .select("parent_form_id")
+    .eq("id", form_group_id)
+    
+    if (fg_error) {
+      console.error("Unable to determine parent_form_id while getting child submisssion count")
+      console.error(fg_error)
+      throw fg_error
+    }
+
+    //Group is parentless, return 0 children
+    if (fg_data[0] == null) {
+      return res.status(200).json({count: 0})
+    }
+
+    const parent_form_id = fg_data[0].parent_form_id;
+    const { data, error } = await supabase
+    .from('forms')
+    .select(`*,
+      submission(*)
+    )`)
+    .eq('form_group_id', form_group_id)
+  
+    if ( error ) throw error;
+
+    const childForms = data.filter(f => f.id != parent_form_id);
+    if (childForms.length == 0) {
+      return res.status(200).json({count: 0})
+    }
+
+    const childSubmissionCount = childForms.reduce((count, form) => {
+      return count + form.submission.length;
+    }, 0)
+
+    return res.status(200).json({count: childSubmissionCount})
+  } catch (e) {
+    return res.status(500).json({message: "Interal error while getting submission count"});
   }
 };

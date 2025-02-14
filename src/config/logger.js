@@ -29,7 +29,7 @@ const logger = winston.createLogger({
   transports: [
     // Console transport for Heroku log drain
     new winston.transports.Console({
-      stderrLevels: ['error'],
+      stderrLevels: ['debug'],
     })
   ]
 });

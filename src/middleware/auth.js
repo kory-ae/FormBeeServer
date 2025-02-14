@@ -6,7 +6,6 @@ import logger from '../config/logger.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    //logger.debug("start auth...")
     const authHeader = req.headers.authorization;
     
     if (!authHeader?.startsWith('Bearer ')) {
@@ -40,8 +39,8 @@ export const authenticate = async (req, res, next) => {
 };
 
 export const isPaid = async (req, res, next) => {
-    if ( !req.user?.isPaid ) {
-      return res.status(403).json({error: "This account cannot use this functionality"})
-    }
-    next();
+  if ( !req.user?.isPaid ) {
+    return res.status(403).json({error: "This account cannot use this functionality"})
+  }
+  next();
 };
