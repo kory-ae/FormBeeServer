@@ -137,13 +137,18 @@ async function getConfiguredFormsByAssociation (user) {
 export const getJotFormSubmissions = async (req, res) => {
   try {
       const { formId } = req.params;
-      const { includeDelete } = req.query.includeDelete === true;
+      const includeDelete = req.query.includeDelete === true;
+
+      // might be times where we want empty submissions, but not right now
+      const includeEmpty = false;
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
       let data = await getSubmissionByForm(userId, formId);
       if (!includeDelete){
         data = data.filter(submission => submission.status !== "DELETED")
+      }      
+      if (!includeEmpty){
+        data = data.filter(submission => submission.updated_at !== null)
       }
-      
       if (!req.user.isPaid) {
         logger.info(`User is free user, filtering list to user's submissions`)
         const {data: submissionData, error } = await supabase

@@ -9,6 +9,7 @@ export const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     
     if (!authHeader?.startsWith('Bearer ')) {
+      logger.error("Attempted to authenticate without bearer token")
       return res.status(401).json({ error: 'No token provided' });
     }
 
@@ -16,6 +17,7 @@ export const authenticate = async (req, res, next) => {
     
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error) {
+      logger.error("Attempted to authenticate but token appears invalid")
       return res.status(401).json({ error: 'Invalid token' });
     }
 
