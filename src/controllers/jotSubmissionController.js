@@ -92,7 +92,7 @@ export const getGroupParentSubmission = async (req, res) => {
     }
     const keySet = Object.keys(submissions[0].answers);
     const formattedData = submissions
-      .filter(submission => submission.status !== "DELETED")    
+      .filter(submission => submission.status !== "DELETED" && submission.updated_at !== null)
       .map(submission => {
         let record = {
           id: submission.id
