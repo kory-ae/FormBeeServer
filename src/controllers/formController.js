@@ -138,28 +138,29 @@ export const getJotFormSubmissions = async (req, res) => {
   try {
       const { formId } = req.params;
       const includeDelete = req.query.includeDelete === true;
-
       // might be times where we want empty submissions, but not right now
       const includeEmpty = false;
+
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
-      let data = await getSubmissionByForm(userId, formId);
+      let jotSubmissions = await getSubmissionByForm(userId, formId);
+      
+      const {data: formBeeSubs, error } = await supabase
+      .from("submission")
+      .select("submission_id, user_id")
+      if (error) throw error;
+
       if (!includeDelete){
-        data = data.filter(submission => submission.status !== "DELETED")
-      }      
+        jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
+      }
       if (!includeEmpty){
-        data = data.filter(submission => submission.updated_at !== null)
+        //if the submission exists in formBee, the updated_at cannot be null
+        jotSubmissions = jotSubmissions.filter(jotSub => 
+          !(formBeeSubs.some(fbSub =>  fbSub.submission_id == jotSub.id) 
+          && jotSub.updated_at == null))
       }
       if (!req.user.isPaid) {
-        logger.info(`User is free user, filtering list to user's submissions`)
-        const {data: submissionData, error } = await supabase
-          .from("submission")
-          .select("submission_id")
-          .eq("user_id", req.user.id);
-        
-        if (error) throw error;
-
-        const userSubmissions = submissionData.map( x=> x.submission_id);
-        data = data.filter(submission => userSubmissions.includes(submission.id))
+        const userSubmissions = formBeeSubs.map( x=> x.submission_id);
+        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
       }
       if (req.query.parent_submission_id) {
         const {data: submissionData, error } = await supabase
@@ -170,11 +171,11 @@ export const getJotFormSubmissions = async (req, res) => {
         if (error) throw error;
 
         const userSubmissions = submissionData.map( x=> x.submission_id);
-        data = data.filter(submission => userSubmissions.includes(submission.id))
+        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
       }
 
-      await addSubmissionMetaData(userId, data);
-      return res.status(200).json({forms: data});
+      await addSubmissionMetaData(userId, jotSubmissions);
+      return res.status(200).json({forms: jotSubmissions});
     }
     catch (error) {
       logger.error(`error while getting all jot forms for user: ${error}`)
