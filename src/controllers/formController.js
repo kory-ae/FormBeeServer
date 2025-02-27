@@ -216,7 +216,6 @@ export const getFormUsers = async (req, res) => {
           fData.email = u.email;
          })
       }
-
     return res.status(200).json(data)
   } catch (error) {
     logger.error('Error inserting submission row:', error.message)

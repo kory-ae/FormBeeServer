@@ -24,7 +24,10 @@ const callWrapper = async (userId, jotCall) => {
 
 export const getForms = async (userId) => {
     return callWrapper(userId, async (client) => {
-        return client.user.getForms();
+        const paginationParameters = {
+            limit: 1000
+          }
+        return client.user.getForms(paginationParameters);
     })
 }
 
@@ -36,7 +39,10 @@ export const getForm = async (userId, jotFormId) => {
 
 export const getSubmissionByForm = async (userId, jotFormId) => {
     return callWrapper(userId, async (client) => {
-        return client.form.getSubmissions(jotFormId)
+        const paginationParameters = {
+            limit: 1000
+          }
+        return client.form.getSubmissions(jotFormId, paginationParameters)
     });
 }
 
