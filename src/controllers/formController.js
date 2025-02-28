@@ -159,7 +159,7 @@ export const getJotFormSubmissions = async (req, res) => {
           && jotSub.updated_at == null))
       }
       if (!req.user.isPaid) {
-        const userSubmissions = formBeeSubs.map( x=> x.submission_id);
+        const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
         jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
       }
       if (req.query.parent_submission_id) {
