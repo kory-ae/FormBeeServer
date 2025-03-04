@@ -36,7 +36,7 @@ async function addSubmissionMetaData(userId, submissionData) {
   
   const parentJotFormId = metaSubData[0]?.forms?.form_group?.forms?.form_id;
   const header_field = metaSubData[0]?.forms?.form_group?.forms?.header_field;
-  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId)) : [];
+  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false)) : [];
     
   if (parentSubmissions.length == 0){
     return;
@@ -139,29 +139,24 @@ export const getJotFormSubmissions = async (req, res) => {
       const { formId } = req.params;
       const includeDelete = req.query.includeDelete === true;
       // might be times where we want empty submissions, but not right now
-      const includeEmpty = false;
+      const filterEmpty = true;
 
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
-      let jotSubmissions = await getSubmissionByForm(userId, formId);
+      let jotSubmissions = await getSubmissionByForm(userId, formId, filterEmpty);
       
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
       .select("submission_id, user_id")
+      .eq("form_id", formId)
       if (error) throw error;
 
       if (!includeDelete){
         jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
       }
-      if (!includeEmpty){
-        //if the submission exists in formBee, the updated_at cannot be null
-        jotSubmissions = jotSubmissions.filter(jotSub => 
-          !(formBeeSubs.some(fbSub =>  fbSub.submission_id == jotSub.id) 
-          && jotSub.updated_at == null))
-      }
-      if (!req.user.isPaid) {
-        const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
-        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
-      }
+     // if (!req.user.isPaid) {
+     //   const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
+     //   jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
+     // }
       if (req.query.parent_submission_id) {
         const {data: submissionData, error } = await supabase
           .from("submission")

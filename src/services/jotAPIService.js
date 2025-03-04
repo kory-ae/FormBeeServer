@@ -37,13 +37,35 @@ export const getForm = async (userId, jotFormId) => {
     });
 }
 
-export const getSubmissionByForm = async (userId, jotFormId) => {
-    return callWrapper(userId, async (client) => {
+export const getSubmissionByForm = async (userId, jotFormId, filterBlank) => {
+    let results = await callWrapper(userId, async (client) => {
         const paginationParameters = {
             limit: 1000
           }
         return client.form.getSubmissions(jotFormId, paginationParameters)
     });
+
+    const hasAnswer = (sub) => {
+        const keys = Object.keys(sub.answers)
+        keys.forEach(k => {
+            if (sub.answers[k].answer) {
+                // console.log("found answer")
+                return true;
+            }                
+        })
+        return false;
+
+        //does this work? 
+        //return keys.some(k => sub.answers[k].answer)
+    }
+
+    if (filterBlank) {
+        //let tmpResults = results.filter(sub => hasAnswer(sub) );
+        let tmpResults = results.filter(sub => 1 < 2 );
+        results = [...tmpResults];
+    }
+    return results;
+
 }
 
 export const getSubmission = async (userId, submissionId) => {

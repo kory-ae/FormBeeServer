@@ -76,7 +76,7 @@ export const getGroupParentSubmission = async (req, res) => {
     if (error) throw error;
 
     const userId = await formGetFormByUser(data.forms.form_id);
-    const submissions = await getSubmissionByForm(userId, data.forms.form_id)
+    const submissions = await getSubmissionByForm(userId, data.forms.form_id, false)
 
     if (submissions.length == 0 ) {
       if (data.parent_read_only) {
@@ -92,7 +92,8 @@ export const getGroupParentSubmission = async (req, res) => {
     }
     const keySet = Object.keys(submissions[0].answers);
     const formattedData = submissions
-      .filter(submission => submission.status !== "DELETED" && submission.updated_at !== null)
+    //
+      .filter(submission => submission.status !== "DELETED")
       .map(submission => {
         let record = {
           id: submission.id
@@ -133,7 +134,9 @@ export const countJotSubmissions = async (req, res) => {
   const userId = req.user.id;
   const { form_id } = req.query;
   try {
-    const data = await getSubmissionByForm(userId, form_id)
+
+    //Not sure about if we want to filter or not....
+    const data = await getSubmissionByForm(userId, form_id, false)
     return res.status(200).json({count: data.length})
   }catch (e) {
     return res.status(500).json({message: "Interal error while getting submission count"});
