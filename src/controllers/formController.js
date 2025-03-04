@@ -153,10 +153,10 @@ export const getJotFormSubmissions = async (req, res) => {
       if (!includeDelete){
         jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
       }
-     // if (!req.user.isPaid) {
-     //   const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
-     //   jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
-     // }
+      if (!req.user.isPaid) {
+        const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
+        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
+      }
       if (req.query.parent_submission_id) {
         const {data: submissionData, error } = await supabase
           .from("submission")
