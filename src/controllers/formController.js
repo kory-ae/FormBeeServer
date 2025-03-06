@@ -153,9 +153,23 @@ export const getJotFormSubmissions = async (req, res) => {
       if (!includeDelete){
         jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
       }
+      //Filter out data user is not allowed to see
+      //A paid user is able to see everything
+      //An anon user is only able to see their stuff
+      //Otherwise, the user is able to see everything if the "view_submissions" is true on the form group
       if (!req.user.isPaid) {
-        const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
-        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
+
+        const {data: viewSubData, error: viewSubError} = await supabase
+        .from("forms")
+        .select("viewable_submissions")
+        .eq("form_id", formId)
+
+        if (viewSubError) throw viewSubError
+
+        if (!viewSubData[0].viewable_submissions || req.user.is_anonymous) {
+          const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
+          jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
+        }
       }
       if (req.query.parent_submission_id) {
         const {data: submissionData, error } = await supabase

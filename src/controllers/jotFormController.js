@@ -35,7 +35,7 @@ export const getJotForm = async (req, res) => {
   try {
       const { formId } = req.params;        
       const data = await getForm(req.user.id, formId);
-      return res.status(200).json({forms: data});
+      return res.status(200).json(data);
     }
     catch (error) {
       if (error?.name == "AxiosError" && error.status === 401) {
