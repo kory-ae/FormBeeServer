@@ -96,11 +96,11 @@ async function getConfiguredFormsByUser (userId) {
   return {data, error}
 }
 
-export const getFormOwner = async (formId) => {
+export const getFormOwner = async (id) => {
   const {data, error} = await supabase
     .from("forms")
     .select("user_id")
-    .eq("form_id", formId)   
+    .eq("id", id)   
 
   if (error) throw error;
 
@@ -134,20 +134,37 @@ async function getConfiguredFormsByAssociation (user) {
     return {data, error};
 }
 
+const getJotFormId = async (id) => {
+  const {data, error} = await supabase
+  .from("forms")
+  .select("form_id")
+  .eq("id", id)
+  .single()
+
+  if (error) throw error
+  
+  return data.form_id;
+}
+
+//TODO: refactor for duplicate forms
 export const getJotFormSubmissions = async (req, res) => {
   try {
-      const { formId } = req.params;
+      const { id } = req.params;
       const includeDelete = req.query.includeDelete === true;
+
       // might be times where we want empty submissions, but not right now
       const filterEmpty = true;
 
-      const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
-      let jotSubmissions = await getSubmissionByForm(userId, formId, filterEmpty);
+      const jotFormId = await getJotFormId(id)
+
+      const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(jotFormId)
+      let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty);
       
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
       .select("submission_id, user_id")
-      .eq("form_id", formId)
+      .eq("form_id", jotFormId) // will not work with duplicate forms
+
       if (error) throw error;
 
       if (!includeDelete){
@@ -162,7 +179,7 @@ export const getJotFormSubmissions = async (req, res) => {
         const {data: viewSubData, error: viewSubError} = await supabase
         .from("forms")
         .select("viewable_submissions")
-        .eq("form_id", formId)
+        .eq("id", id)
 
         if (viewSubError) throw viewSubError
 
@@ -192,46 +209,6 @@ export const getJotFormSubmissions = async (req, res) => {
     }
 };
 
-//refactor needed
-export const getFormUsers = async (req, res) => {
-  try {
-
-    const {formId} = req.params;
-    // Insert the row and return the inserted data
-    const { data, error } = await supabase
-      .from("form_user")
-      .select("*")
-      .eq("form_id", formId)
-    
-      if (error) throw error;
-
-      const acctsNeedingEmail = data.reduce((acc, curr) => {
-        if(!curr.email) {
-          acc.push(curr.user_id)
-        }
-        return acc;
-      }, [])
-
-      if (acctsNeedingEmail.length > 0){
-        const {data: userData, error: userError} = await supabase
-         .from('users')
-         .select('id, email')
-         .in('id', acctsNeedingEmail)
-
-         if (userError) throw userError
-
-         userData.forEach(u => {
-          const fData = data.find(f => f.user_id == u.id)
-          fData.email = u.email;
-         })
-      }
-    return res.status(200).json(data)
-  } catch (error) {
-    logger.error('Error inserting submission row:', error.message)
-    res.status(500).json({ error: 'Internal server error' });
-  }
-}
-
 export const addForm = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -241,10 +218,12 @@ export const addForm = async (req, res) => {
     //I guess we leave this just as a test that this user can access this jot form
     await getForm(userId, form.form_id);
 
+    //this will change to not add form to same group
     const {data: formExistData, error: formExistError} = await supabase
       .from('forms')
       .select('*')
       .eq('form_id', form.form_id)
+      .eq('form_group_id', form.form_group_id)
 
     if (formExistData.length > 0 || formExistError) {
       throw new Error("Form already exists in FormBee")
@@ -332,12 +311,12 @@ export const getConfiguredForms = async (req, res) => {
 
 export const updateForm = async (req, res) => {
   try {
-    const {formId: form_id} = req.params;
+    const { id} = req.params;
     const formData = req.body;
     const { data, error } = await supabase
         .from('forms')
         .update(formData)
-        .eq("form_id", form_id)
+        .eq("id", id)
         .select('*')
         .single();
 
@@ -360,12 +339,21 @@ export const updateForm = async (req, res) => {
 
 export const newSubmission = async (req, res) => {
   try {
-    const {formId} = req.params;
+    const { id } = req.params;
     const { parent_submission_id } = req.query;
-    const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(formId)
+    const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
     
     const jotData  = await addSubmission(userId, formId, {"submission[1]": "NONE"});
-    const supaData = await linkUserSubmission({user_id: req.user.id, form_id: formId, submission_id: jotData.submissionID, parent_submission_id: parent_submission_id});
+
+    const jotFormId = getJotFormId(id);
+
+    const userSubData = {
+      user_id: req.user.id, 
+      form_id: jotFormId, 
+      submission_id: jotData.submissionID, 
+      parent_submission_id: parent_submission_id
+    }
+    const supaData = await linkUserSubmission(userSubData);
     return res.status(200).json({submissionUrl: `http://www.jotform.com/edit/${jotData.submissionID}`})
   }
   catch (error) {
@@ -376,12 +364,12 @@ export const newSubmission = async (req, res) => {
 
 export const deleteForm = async (req, res) => {
   try {
-      const { formId } = req.params;
+      const { id } = req.params;
       
       const {data, error} = await supabase
         .from('forms')
         .delete()
-        .eq('form_id', formId)
+        .eq('id', id)
 
       if (error) throw error
       return res.status(204).json();

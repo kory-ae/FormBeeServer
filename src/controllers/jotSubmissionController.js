@@ -67,7 +67,7 @@ export const getGroupParentSubmission = async (req, res) => {
 
     const {data, error} = await supabase
       .from("form_group")
-      .select("parent_form_id, parent_read_only, forms!form_group_parent_form_id_fkey(form_id, visible_fields, header_field)")
+      .select("parent_form_id, parent_read_only, forms!form_group_parent_form_id_fkey(id, form_id, visible_fields, header_field)")
       .eq("id", formGroupId)
       .single();
 
@@ -75,8 +75,8 @@ export const getGroupParentSubmission = async (req, res) => {
 
     if (error) throw error;
 
-    const userId = await formGetFormByUser(data.forms.form_id);
-    const submissions = await getSubmissionByForm(userId, data.forms.form_id, false)
+    const userId = await formGetFormByUser(data.forms.id);
+    const submissions = await getSubmissionByForm(userId, data.forms.form_id, true)
 
     if (submissions.length == 0 ) {
       if (data.parent_read_only) {
@@ -124,7 +124,8 @@ export const getGroupParentSubmission = async (req, res) => {
     });
   }
   catch (error) {
-    logger.error(`error while getting group parent submission: ${error}`)
+    logger.error(` 
+      : ${error}`)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

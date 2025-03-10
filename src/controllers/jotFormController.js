@@ -49,7 +49,7 @@ export const getJotForm = async (req, res) => {
 export const getJotForms = async (req, res) => {
   try {
     const data = await getForms(req.user.id);
-    return res.status(200).json({forms: data});
+    return res.status(200).json(data);
   }
   catch (error) {
     logger.error(`error while getting jot forms: ${error}`)

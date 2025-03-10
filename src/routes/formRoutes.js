@@ -2,7 +2,7 @@ import express from 'express';
 import { query, body } from 'express-validator';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
-import { deleteForm, getJotFormSubmissions, addForm, getFormUsers, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
+import { deleteForm, getJotFormSubmissions, addForm, getConfiguredForms,  updateForm, newSubmission } from '../controllers/formController.js';
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ const validatePagination = [
   ];
   
 router.delete(
-    '/form/:formId',
+    '/form/:id',
     [
       authenticate,
       isPaid,
@@ -28,8 +28,9 @@ router.delete(
     deleteForm
 );
 
+
 router.get(
-    '/form/:formId/submissions',
+    '/form/:id/submissions',
     [
       authenticate,
       validatePagination,
@@ -53,7 +54,7 @@ router.get(
     getConfiguredForms);
 
 router.put(
-  '/form/:formId/', 
+  '/form/:id/', 
   [
     //TODO: validate body
     authenticate, 
@@ -62,7 +63,7 @@ router.put(
   updateForm);
 
 router.post(
-  '/form/:formId/newSubmission', 
+  '/form/:id/newSubmission', 
   authenticate, 
   newSubmission);
 

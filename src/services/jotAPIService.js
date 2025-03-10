@@ -52,25 +52,14 @@ export const getSubmissionByForm = async (userId, jotFormId, filterBlank) => {
 
     const hasAnswer = (sub) => {
         const keys = Object.keys(sub.answers)
-        keys.forEach(k => {
-            if (sub.answers[k].answer) {
-                // console.log("found answer")
-                return true;
-            }                
-        })
-        return false;
-
-        //does this work? 
-        //return keys.some(k => sub.answers[k].answer)
+        return keys.some(k => sub.answers[k].answer)
     }
 
     if (filterBlank) {
-        //let tmpResults = results.filter(sub => hasAnswer(sub) );
-        let tmpResults = results.filter(sub => 1 < 2 );
+        let tmpResults = results.filter(sub => hasAnswer(sub) );
         results = [...tmpResults];
     }
     return results;
-
 }
 
 export const getSubmission = async (userId, submissionId) => {

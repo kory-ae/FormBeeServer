@@ -10,13 +10,7 @@ router.post('/formGroup/generateCode',
      generateCode
 );
 
-// Route to get form group
-//this method is empty on the controller, probably dead code
-//router.get('/formGroup/:id', 
-  //  [authenticate],
-   // getFormGroup);
-
-// Route to get form group
+// Route to get user's form groups
 router.get('/formGroups', 
     [authenticate],
     getGroupsByUser);
