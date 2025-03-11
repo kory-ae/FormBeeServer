@@ -29,8 +29,6 @@ export const getJotSubmission = async (req, res) => {
   }
 };
 
-
-
 export const deleteJotSubmission = async (req, res) => {
   try {
     const { submissionId } = req.params;

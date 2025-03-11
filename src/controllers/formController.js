@@ -107,6 +107,18 @@ export const getFormOwner = async (id) => {
   return data[0].user_id;
 }
 
+export const getOwnerByJotFormId = async (form_id) => {
+  const {data, error} = await supabase
+    .from("forms")
+    .select("user_id")
+    .eq("form_id", form_id)   
+
+  if (error) throw error;
+
+  return data[0].user_id;
+}
+
+
 async function getConfiguredFormsByAssociation (user) {
 
   const { data : groupList, error: error1 } = await supabase
@@ -157,13 +169,13 @@ export const getJotFormSubmissions = async (req, res) => {
 
       const jotFormId = await getJotFormId(id)
 
-      const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(jotFormId)
+      const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
       let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty);
       
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
       .select("submission_id, user_id")
-      .eq("form_id", jotFormId) // will not work with duplicate forms
+      .eq("form_id", id) 
 
       if (error) throw error;
 
@@ -342,14 +354,12 @@ export const newSubmission = async (req, res) => {
     const { id } = req.params;
     const { parent_submission_id } = req.query;
     const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
-    
-    const jotData  = await addSubmission(userId, formId, {"submission[1]": "NONE"});
-
-    const jotFormId = getJotFormId(id);
+    const jotFormId = await getJotFormId(id)
+    const jotData  = await addSubmission(userId, jotFormId, {"submission[1]": "NONE"});
 
     const userSubData = {
       user_id: req.user.id, 
-      form_id: jotFormId, 
+      form_id: id, 
       submission_id: jotData.submissionID, 
       parent_submission_id: parent_submission_id
     }

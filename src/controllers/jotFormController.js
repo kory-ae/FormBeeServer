@@ -1,5 +1,5 @@
 import { getForms, getForm, getFormQuestions } from '../services/jotAPIService.js';
-import { getFormOwner } from './formController.js'
+import { getFormOwner, getOwnerByJotFormId } from './formController.js'
 import logger from '../config/logger.js';
 //import { supabase } from '../config/supabase.js';
 
@@ -60,7 +60,9 @@ export const getJotForms = async (req, res) => {
 export const getJotFormQuestions = async (req, res) => {
   try {
     const {formId} = req.params;
-    const userId = req.user.isPaid ? req.user.id : await getFormOwner(formId)
+
+    
+    const userId = req.user.isPaid ? req.user.id : await getOwnerByJotFormId(formId)
     const data = await getFormQuestions(userId, formId);
     const formattedQuestions = formatJotQuestions(data)
     return res.status(200).json({formattedQuestions});
