@@ -17,6 +17,7 @@
     "fs": "^0.0.1-security",
     "jotform": "^1.0.1",
     "latest": "^0.2.0",
+    "multer": "^1.4.5-lts.1",
     "newrelic": "^12.9.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

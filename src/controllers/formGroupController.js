@@ -1,5 +1,7 @@
+import { group } from 'console';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
+import fs from 'fs'
 
 const CODE_LENGTH = 5;
 
@@ -60,6 +62,7 @@ export const addGroup = async (req, res) => {
 
 export const updateGroup = async (req, res) => {
     try {
+        delete req.body.has_image
         const { data, error } = await supabase
             .from('form_group')
             .update(req.body)
@@ -76,10 +79,25 @@ export const updateGroup = async (req, res) => {
 
 export const deleteFormGroup = async (req, res) => {
     try {
+        const groupId = req.params.id;
+
+        const {data: groupImageData, error: groupImageError} = await supabase
+        .from('form_group')
+        .select('group_image_path')
+        .eq('id', groupId)
+        .single();
+
+        if (groupImageData && groupImageData.group_image_path) {
+            const { data: uploadData, error: uploadError } = await supabase
+            .storage
+            .from('group-image')
+            .remove([groupImageData.group_image_path]);
+        }
+
         const {data, error } = await supabase
             .from('form_group')
             .delete()
-            .eq('id', req.params.id)
+            .eq('id', groupId)
         if (error) throw error
         return res.status(204).json();
     } catch (error) {
@@ -102,7 +120,7 @@ export const queryFormGroups = async (userId) => {
     
     const { data: byCodeData, error: byCodeError } = await supabase
     .from('user_form_group')
-    .select('*, form_group(*)')
+    .select(`*, form_group(*)`)
     .eq('user_id', userId)
     
     if (byCodeError) throw byCodeError
@@ -140,4 +158,141 @@ export const userHasGroupAccess = async (userId, formGroupId) => {
 
     const hasAccess = (data.length > 0)
     return hasAccess;
+}
+
+export const setGroupImage_old = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        
+        // Check if file was uploaded
+        if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        // Read the file as buffer - this gives us binary data directly
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const base64Image = fileBuffer.toString('base64');
+        
+        // Update the formGroup table
+        const { data, error } = await supabase
+        .from('form_group')
+        .update({ group_image: base64Image })
+        .eq('id', groupId)
+        .select('*')
+        .single();
+        
+        // Clean up the temporary file
+        //fs.unlinkSync(req.file.path);
+
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+
+        return res.status(200).json({  message: 'Group image updated successfully' });
+    } catch (error) {
+        console.error('Error updating group image:', error);
+        return res.status(500).json({ error: 'Failed to update group image' });
+    }
+}
+
+export const setGroupImage = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const fileName = `group-${groupId}.png`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase
+            .storage
+            .from('group-image')
+            .upload(fileName, fileBuffer, {
+                contentType: 'image/png',
+                upsert: true // Overwrite if exists
+            });
+            
+        if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            throw uploadError;
+        }
+        
+        // Update your database with the path reference
+        const { data, error } = await supabase
+            .from('form_group')
+            .update({ 
+                group_image_path: fileName
+            })
+            .eq('id', groupId)
+            .single();
+            
+        // Clean up the temporary file
+        fs.unlinkSync(req.file.path);
+
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+
+        return res.status(200).json({ group_image_path: fileName });
+    } catch (error) {
+        console.error('Error updating group image:', error);
+        return res.status(500).json({ error: 'Failed to update group image' });
+    }
+}
+
+export const getGroupImage = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+
+        const { data: formGroup, error } = await supabase
+        .from('form_group')
+        .select('group_image_path')
+        .eq('id', groupId)
+        .single();
+        
+        if (error || !formGroup || !formGroup.group_image_path) {
+            return res.status(404).json({ error: 'Image not found' });
+        }
+        
+        // Option 1: Redirect to the public URL
+        const { data: publicUrlData } = supabase
+            .storage
+            .from('group-image')
+            .getPublicUrl(formGroup.group_image_path);
+
+        return res.status(200).json({imageUrl: publicUrlData.publicUrl})
+    } catch (error) {
+        console.error('Error updating group image:', error);
+        return res.status(500).json({ error: 'Failed to update group image' });
+    }
+}
+
+export const deleteGroupImage = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+
+        const {data: groupImageData, error: groupImageError} = await supabase
+        .from('form_group')
+        .select('group_image_path')
+        .eq('id', groupId)
+        .single();
+
+        if (groupImageError) throw groupImageError
+
+        if (groupImageData && groupImageData.group_image_path) {
+            const { data: uploadData, error: deleteError } = await supabase
+            .storage
+            .from('group-image')
+            .remove([groupImageData.group_image_path]);
+
+            if (deleteError) throw deleteError;
+        }
+        return res.status(204).json();
+    } catch (error) {
+        console.error('Error deleting group image:', error);
+        return res.status(500).json({ error: 'Failed to delete group image' });
+    }
 }

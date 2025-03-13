@@ -49,7 +49,8 @@ export const getJotForm = async (req, res) => {
 export const getJotForms = async (req, res) => {
   try {
     const data = await getForms(req.user.id);
-    return res.status(200).json(data);
+    const nonDeletedForms = data.filter(x => x.status !== 'DELETED')
+    return res.status(200).json(nonDeletedForms);
   }
   catch (error) {
     logger.error(`error while getting jot forms: ${error}`)

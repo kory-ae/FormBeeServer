@@ -1,6 +1,9 @@
 import express from 'express';
 import { authenticate, isPaid } from '../middleware/auth.js';
-import { generateCode, getFormGroup, getGroupsByUser, addGroup, updateGroup, deleteFormGroup } from '../controllers/formGroupController.js';
+import { generateCode, getGroupsByUser, addGroup, updateGroup, deleteFormGroup, setGroupImage, getGroupImage, deleteGroupImage } from '../controllers/formGroupController.js';
+
+import  multer  from 'multer';
+const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
@@ -25,9 +28,26 @@ router.put('/formGroup/:id',
     [authenticate, isPaid],
      updateGroup);
 
+router.post('/formGroup/:id/image',
+    [authenticate, isPaid],
+    upload.single('image'),
+    setGroupImage);
+
+router.delete('/formGroup/:id/image', 
+    [authenticate, isPaid],
+    deleteGroupImage);
+    
+router.get('/formGroup/:id/image',
+    [authenticate],
+    getGroupImage
+);
+
+
+
 // Route to delete form group
 router.delete('/formGroup/:id', 
     [authenticate, isPaid],
+    
     deleteFormGroup);
 
 export default router;
