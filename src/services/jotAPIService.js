@@ -38,17 +38,19 @@ export const getForm = async (userId, jotFormId) => {
 }
 
 export const getSubmissionByForm = async (userId, jotFormId, filterBlank) => {
-    //const start = process.hrtime.bigint()
+    const start = process.hrtime.bigint()
+    const onlyActive = `{ "status": "ACTIVE" }`
     let results = await callWrapper(userId, async (client) => {
         const paginationParameters = {
-            limit: 1000
+            limit: 1000,
+            filter: onlyActive
           }
         return client.form.getSubmissions(jotFormId, paginationParameters)
     });
-    //const end = process.hrtime.bigint()
-    //const elapsed = Number(end - start) / 1e6;
-    //const approximateSize = new Blob([JSON.stringify(results)]).size;
-    //logger.debug(`Call to get submissions: ${elapsed}, size: ${approximateSize} `)
+    const end = process.hrtime.bigint()
+    const elapsed = Number(end - start) / 1e6;
+    const approximateSize = new Blob([JSON.stringify(results)]).size;
+    logger.debug(`Call to get submissions: ${elapsed}, size: ${approximateSize}, count: ${results.length} `)
 
     const hasAnswer = (sub) => {
         const keys = Object.keys(sub.answers)

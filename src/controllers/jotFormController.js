@@ -62,7 +62,6 @@ export const getJotFormQuestions = async (req, res) => {
   try {
     const {formId} = req.params;
 
-    
     const userId = req.user.isPaid ? req.user.id : await getOwnerByJotFormId(formId)
     const data = await getFormQuestions(userId, formId);
     const formattedQuestions = formatJotQuestions(data)
