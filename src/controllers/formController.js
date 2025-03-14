@@ -2,7 +2,7 @@ import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { getForm, getForms, getSubmission, addSubmission, getSubmissionByForm } from '../services/jotAPIService.js';
 
-async function addSubmissionMetaData(userId, submissionData) {
+export async function addSubmissionMetaData(userId, submissionData) {
   //augment data with parent header and submitter data (if available)
   const {data: metaSubData, error: metaSubError} = await supabase
   .from("submission")
@@ -36,7 +36,12 @@ async function addSubmissionMetaData(userId, submissionData) {
   
   const parentJotFormId = metaSubData[0]?.forms?.form_group?.forms?.form_id;
   const header_field = metaSubData[0]?.forms?.form_group?.forms?.header_field;
-  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false)) : [];
+
+  //Get subIds so we can ask for specific subset of records
+  let parent_sub_ids = metaSubData.filter(sub => sub.parent_submission_id !== null).map(sub => sub.parent_submission_id);
+  parent_sub_ids = [... new Set(parent_sub_ids)]
+
+  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false, parent_sub_ids)) : [];
     
   if (parentSubmissions.length == 0){
     return;
@@ -171,7 +176,7 @@ export const getJotFormSubmissions = async (req, res) => {
 
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
       let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty);
-      
+       
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
       .select("submission_id, user_id")
@@ -216,7 +221,8 @@ export const getJotFormSubmissions = async (req, res) => {
       return res.status(200).json({forms: jotSubmissions});
     }
     catch (error) {
-      logger.error(`error while getting all jot forms for user: ${error}`)
+      logger.error('error while getting all jot forms for user:', error)
+      logger.error(error.msg | "unknown error")
       return res.status(500).json({ error: 'Internal server error' });
     }
 };

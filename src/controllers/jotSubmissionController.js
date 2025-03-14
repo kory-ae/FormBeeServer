@@ -2,7 +2,7 @@ import { getSubmission, deleteSubmission, getSubmissionByForm } from '../service
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { userHasGroupAccess } from '../controllers/formGroupController.js'
-import { getFormOwner as formGetFormByUser } from '../controllers/formController.js';
+import { getFormOwner as formGetFormByUser, addSubmissionMetaData } from '../controllers/formController.js';
 
 async function getFormOwner (submission_id) {
   
@@ -21,7 +21,11 @@ export const getJotSubmission = async (req, res) => {
   try {
     const { submissionId } = req.params;
     const data = await getSubmission(req.user.id, submissionId);
-    return res.status(200).json({forms: data});
+    
+    const userId =  (req.user.isPaid) ? req.user.id : await formGetFormByUser(id)
+    addSubmissionMetaData(userId,[data])
+
+    return res.status(200).json(data);
   }
   catch (error) {
     logger.error(`error while getting jot submission: ${error}`)

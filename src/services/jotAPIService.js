@@ -37,13 +37,24 @@ export const getForm = async (userId, jotFormId) => {
     });
 }
 
-export const getSubmissionByForm = async (userId, jotFormId, filterBlank) => {
+export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subsetIds) => {
     const start = process.hrtime.bigint()
-    const onlyActive = `{ "status": "ACTIVE" }`
+    //const filter = `{ "status": "ACTIVE" }`
+
+    //const filter = `{ "id:in": ["6177193254323083720","6171960120154927359"] }`
+
+    let filter = {
+        "status": "ACTIVE"
+    }
+    if (subsetIds && subsetIds.length > 0) {
+        filter = {
+            "id:in": subsetIds
+        }
+    }
     let results = await callWrapper(userId, async (client) => {
         const paginationParameters = {
             limit: 1000,
-            filter: onlyActive
+            filter: JSON.stringify(filter)
           }
         return client.form.getSubmissions(jotFormId, paginationParameters)
     });
