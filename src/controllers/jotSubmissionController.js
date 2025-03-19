@@ -63,7 +63,7 @@ function formatField(field) {
     .replace(/[^a-z0-9_]/g, 'zz');
 }
 
-export const getGroupParentSubmission = async (req, res) => {
+export const getGroupParentMeta = async (req, res) => {
   try {
     const { formGroupId } = req.params;
 
@@ -77,52 +77,14 @@ export const getGroupParentSubmission = async (req, res) => {
 
     if (error) throw error;
 
-    const userId = await formGetFormByUser(data.forms.id);
-    const submissions = await getSubmissionByForm(userId, data.forms.form_id, true)
-
-    if (submissions.length == 0 ) {
-      if (data.parent_read_only) {
-        return res.status(400).json({error: "No submissions found"})
-      } else {
-        const resData = {
-          headers: data.forms.visible_fields,
-          submissions: [],
-          header_field: formatField(data.forms.header_field)
-        }
-        return res.status(200).json(resData)
-      }
-    }
-    const keySet = Object.keys(submissions[0].answers);
-    const formattedData = submissions
-    //
-      .filter(submission => submission.status !== "DELETED")
-      .map(submission => {
-        let record = {
-          id: submission.id
-        }
-        for (const field of data.forms.visible_fields) {
-          const id = keySet.find(x => submission.answers[x].text == field)
-          const fieldName = formatField(field)
-          let value = "N/A"
-          if (id) {
-            const row = submission.answers[id];
-            if (row) {
-              value = row.prettyFormat || row.answer 
-            }
-          }
-          record[fieldName] = value;
-        }
-        return record;
-      });
-
     const headerSet = data.forms.visible_fields.map(f => {
       return {headerName: f, fieldName: formatField(f)}
     })
 
     return res.status(200).json({
       headers: headerSet,
-      submissions: formattedData,
-      header_field: formatField(data.forms.header_field)
+      formId: data.forms.id,
+      header_field: data.forms.header_field
     });
   }
   catch (error) {

@@ -37,12 +37,9 @@ export const getForm = async (userId, jotFormId) => {
     });
 }
 
-export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subsetIds) => {
-    const start = process.hrtime.bigint()
-    //const filter = `{ "status": "ACTIVE" }`
-
-    //const filter = `{ "id:in": ["6177193254323083720","6171960120154927359"] }`
-
+export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subsetIds, limit, page) => {
+    const start = process.hrtime.bigint();
+    const offset = (page - 1) * limit;
     let filter = {
         "status": "ACTIVE"
     }
@@ -53,7 +50,8 @@ export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subset
     }
     let results = await callWrapper(userId, async (client) => {
         const paginationParameters = {
-            limit: 1000,
+            limit: limit,
+            offset: offset,
             filter: JSON.stringify(filter)
           }
         return client.form.getSubmissions(jotFormId, paginationParameters)
@@ -61,7 +59,7 @@ export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subset
     const end = process.hrtime.bigint()
     const elapsed = Number(end - start) / 1e6;
     const approximateSize = new Blob([JSON.stringify(results)]).size;
-    logger.debug(`Call to get submissions: ${elapsed}, size: ${approximateSize}, count: ${results.length} `)
+    logger.debug(`Call to get submissions: ${elapsed}, size: ${approximateSize}, count: ${results.length}, page: ${page}, limit: ${limit}, offset: ${offset}`)
 
     const hasAnswer = (sub) => {
         const keys = Object.keys(sub.answers)

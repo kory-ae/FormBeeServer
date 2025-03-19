@@ -41,7 +41,7 @@ export async function addSubmissionMetaData(userId, submissionData) {
   let parent_sub_ids = metaSubData.filter(sub => sub.parent_submission_id !== null).map(sub => sub.parent_submission_id);
   parent_sub_ids = [... new Set(parent_sub_ids)]
 
-  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false, parent_sub_ids)) : [];
+  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false, parent_sub_ids, parent_sub_ids.length, 1)) : [];
     
   if (parentSubmissions.length == 0){
     return;
@@ -167,6 +167,9 @@ const getJotFormId = async (id) => {
 export const getJotFormSubmissions = async (req, res) => {
   try {
       const { id } = req.params;
+      const limit = parseInt(req.query.limit) || 15;
+      const page = parseInt(req.query.page) || 1;
+
       const includeDelete = req.query.includeDelete === true;
 
       // might be times where we want empty submissions, but not right now
@@ -175,7 +178,7 @@ export const getJotFormSubmissions = async (req, res) => {
       const jotFormId = await getJotFormId(id)
 
       const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
-      let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty);
+      let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty, [], limit, page);
        
       const {data: formBeeSubs, error } = await supabase
       .from("submission")

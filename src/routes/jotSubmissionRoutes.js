@@ -1,6 +1,6 @@
 import express from 'express';
 import { param, query } from 'express-validator';
-import { getJotSubmission,  deleteJotSubmission, getGroupParentSubmission, countJotSubmissions, countChildSubmission} from '../controllers/jotSubmissionController.js';
+import { getJotSubmission,  deleteJotSubmission, getGroupParentMeta, countJotSubmissions, countChildSubmission} from '../controllers/jotSubmissionController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate, isPaid } from '../middleware/auth.js';
 import logger from '../config/logger.js';
@@ -56,14 +56,14 @@ router.get(
   getJotSubmission
 );
 
-// Get the submissions for a form group's parent
+// Get the meta data for a form group's parent
 router.get(
-  '/submissions/groupParent/:formGroupId',
+  '/submissions/groupParentMeta/:formGroupId',
   [
     authenticate,
     validateRequest
   ],
-  getGroupParentSubmission
+  getGroupParentMeta
 );
 
 

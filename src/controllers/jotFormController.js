@@ -1,7 +1,6 @@
 import { getForms, getForm, getFormQuestions } from '../services/jotAPIService.js';
 import { getFormOwner, getOwnerByJotFormId } from './formController.js'
 import logger from '../config/logger.js';
-//import { supabase } from '../config/supabase.js';
 
 function formatJotQuestions (questions) {
   if (!questions || questions.length ==0) {
@@ -18,14 +17,19 @@ function formatJotQuestions (questions) {
   
   const entries = Object.entries(questions)
   
+  entries.forEach(([x, y]) => {
+    console.log(`qid: ${y.qid}, type: ${y.type}`);
+  })
+
   return entries
   .filter( ([_, q]) => !nonfillableTypes.includes(q.type))
   .map(([_, q]) => {
+    const header = (q.text && q.text.length > 0) ? q.text : q.name
     return {
      name: q.name,
      order: q.order,
      id: q.qid,
-     header: q.text
+     header: header
     }
   })
   .sort((a,b) => parseInt(a.order) - parseInt(b.order))
