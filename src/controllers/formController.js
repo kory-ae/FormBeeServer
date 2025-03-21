@@ -177,24 +177,37 @@ export const getJotFormSubmissions = async (req, res) => {
 
       const jotFormId = await getJotFormId(id)
 
-      const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
-      let jotSubmissions = await getSubmissionByForm(userId, jotFormId, filterEmpty, [], limit, page);
-       
+      const formOwnerUserId = await getFormOwner(id);
+      const isOwner = formOwnerUserId == req.user.id;
+      //const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
+      let jotSubmissions = await getSubmissionByForm(formOwnerUserId, jotFormId, filterEmpty, [], limit, page);
+
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
       .select("submission_id, user_id")
-      .eq("form_id", id) 
+      .eq("form_id", id)
 
       if (error) throw error;
 
-      if (!includeDelete){
-        jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
-      }
+      //I don t think this does anything anymore, it will have filtered deleted forms on the api call
+      //if (!includeDelete){
+      //  jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
+      //}
+
       //Filter out data user is not allowed to see
       //A paid user is able to see everything
       //An anon user is only able to see their stuff
       //Otherwise, the user is able to see everything if the "view_submissions" is true on the form group
-      if (!req.user.isPaid) {
+      let isFormParent = false;
+      if (!isOwner) {
+        const {data: accessibleForms, error: accessibleFormsError} = await getConfiguredFormsByAssociation(req.user);
+
+
+        if (accessibleFormsError) throw accessibleFormsError
+        const formInQuestion = accessibleForms.find(x => x.id == id);
+        isFormParent = formInQuestion?.parent_form_id == id
+      }
+      if (!isOwner && !isFormParent) {
 
         const {data: viewSubData, error: viewSubError} = await supabase
         .from("forms")
@@ -220,7 +233,7 @@ export const getJotFormSubmissions = async (req, res) => {
         jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
       }
 
-      await addSubmissionMetaData(userId, jotSubmissions);
+      await addSubmissionMetaData(formOwnerUserId, jotSubmissions);
       return res.status(200).json({forms: jotSubmissions});
     }
     catch (error) {

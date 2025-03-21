@@ -118,11 +118,6 @@ export const countChildSubmission = async (req, res) => {
       return res.status(403).json({message: "User does not have access to specified group"})
     }
 
-/*    const {data, error } = await supabase
-      .from("form_group")
-      .select("id, form!forms_form_group_id_fkey(*), submission!inner(*)", {count: 'exact'})
-      .eq("id", form_group_id)   */
-
     const {data: fg_data, error: fg_error } = await supabase
     .from("form_group")
     .select("parent_form_id")
@@ -135,7 +130,7 @@ export const countChildSubmission = async (req, res) => {
     }
 
     //Group is parentless, return 0 children
-    if (fg_data[0] == null) {
+    if (fg_data[0].parent_form_id == null) {
       return res.status(200).json({count: 0})
     }
 
