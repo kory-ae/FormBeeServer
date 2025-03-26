@@ -15,7 +15,9 @@ router.post('/formGroup/generateCode',
 
 // Route to get user's form groups
 router.get('/formGroups', 
-    [authenticate],
+    [
+        authenticate,
+    ],
     getGroupsByUser);
 
 // Route to add form group

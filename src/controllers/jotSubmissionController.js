@@ -23,7 +23,7 @@ export const getJotSubmission = async (req, res) => {
     const data = await getSubmission(req.user.id, submissionId);
     
     const userId =  (req.user.isPaid) ? req.user.id : await formGetFormByUser(id)
-    addSubmissionMetaData(userId,[data])
+    await addSubmissionMetaData(userId,[data])
 
     return res.status(200).json(data);
   }

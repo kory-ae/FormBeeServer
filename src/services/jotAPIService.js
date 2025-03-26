@@ -37,16 +37,11 @@ export const getForm = async (userId, jotFormId) => {
     });
 }
 
-export const getSubmissionByForm = async (userId, jotFormId, filterBlank, subsetIds, limit, page) => {
+export const getSubmissionByForm = async (userId, jotFormId, filterBlank, limit, page) => {
     const start = process.hrtime.bigint();
     const offset = (page - 1) * limit;
     let filter = {
         "status": "ACTIVE"
-    }
-    if (subsetIds && subsetIds.length > 0) {
-        filter = {
-            "id:in": subsetIds
-        }
     }
     let results = await callWrapper(userId, async (client) => {
         const paginationParameters = {

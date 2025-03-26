@@ -63,6 +63,7 @@ export const addGroup = async (req, res) => {
 export const updateGroup = async (req, res) => {
     try {
         delete req.body.has_image
+        delete req.body.owned
         const { data, error } = await supabase
             .from('form_group')
             .update(req.body)
@@ -125,12 +126,16 @@ export const queryFormGroups = async (userId) => {
     
     if (byCodeError) throw byCodeError
     
-    let allData = data;
+    const allData = data.map(fg => {
+        fg.owner = true;
+        return fg;
+    });
     if (byCodeData.length > 0){
      byCodeData
      .filter(x => x.form_group)
-     .forEach(x => {
-        allData = allData.concat(x.form_group)
+     .forEach(ufg => {
+        ufg.form_group.owner = false;
+        allData.push(ufg.form_group)
      })
     }
     return allData;
@@ -139,7 +144,7 @@ export const queryFormGroups = async (userId) => {
 export const getGroupsByUser = async (req, res) => {
 
     try {
-        const data = await queryFormGroups(req.user.id)
+        const data = await queryFormGroups(req.user.id);
         res.status(200).json(data);
     } catch (error) {
         logger.error('Error getting form groups by user:', error.message)

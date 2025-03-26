@@ -38,17 +38,22 @@ export async function addSubmissionMetaData(userId, submissionData) {
   const header_field = metaSubData[0]?.forms?.form_group?.forms?.header_field;
 
   //Get subIds so we can ask for specific subset of records
-  let parent_sub_ids = metaSubData.filter(sub => sub.parent_submission_id !== null).map(sub => sub.parent_submission_id);
-  parent_sub_ids = [... new Set(parent_sub_ids)]
+  let parentSubIds = metaSubData.filter(sub => sub.parent_submission_id !== null).map(sub => sub.parent_submission_id);
+  parentSubIds = [... new Set(parentSubIds)]
 
-  const parentSubmissions = parentJotFormId ? (await getSubmissionByForm(userId, parentJotFormId, false, parent_sub_ids, parent_sub_ids.length, 1)) : [];
-    
-  if (parentSubmissions.length == 0){
-    return;
+  const parentSubmissions = []
+  for(const subId of parentSubIds) {
+    const sub =  await getSubmission(userId, subId)
+    parentSubmissions.push(sub);
+  }
+  
+  let headerKey = null;
+  if (parentSubmissions.length !== 0){
+    const parentKeys = Object.keys(parentSubmissions[0].answers);
+    headerKey = parentKeys.find(k => parentSubmissions[0].answers[k].text == header_field);
   }
 
-  const parentKeys = Object.keys(parentSubmissions[0].answers);
-  const headerKey = parentKeys.find(k => parentSubmissions[0].answers[k].text == header_field);
+
   submissionData.forEach( sub => {
     //get parent 
     const metaSub = metaSubData.find(x=> x.submission_id == sub.id)
@@ -112,6 +117,7 @@ export const getFormOwner = async (id) => {
   return data[0].user_id;
 }
 
+//should check user has access
 export const getOwnerByJotFormId = async (form_id) => {
   const {data, error} = await supabase
     .from("forms")
@@ -145,6 +151,7 @@ async function getConfiguredFormsByAssociation (user) {
         const tmp = {...form};
         delete tmp.form_group;
         tmp["parent_form_id"] = form.form_group?.parent_form_id;
+        tmp.owner = false;
         return tmp;
       })
     }
@@ -163,14 +170,53 @@ const getJotFormId = async (id) => {
   return data.form_id;
 }
 
+export const getJotFormSubsByParent = async (req, res) => {
+  try {
+    const start = process.hrtime.bigint();
+    const { id } = req.params;
+    const filterEmpty = true;
+
+    const jotFormId = await getJotFormId(id)
+    const formOwnerUserId = await getFormOwner(id);
+
+    const {data: submissionData, error } = await supabase
+      .from("submission")
+      .select("submission_id")
+      .eq("parent_submission_id", req.query.parent_submission_id);
+
+    if (error) throw error
+
+    let jotSubmissions = [];
+    for (const sub of submissionData) {
+      const data = await getSubmission(formOwnerUserId, sub.submission_id);
+      jotSubmissions.push(data)
+    }
+    const end = process.hrtime.bigint()
+    const elapsed = Number(end - start) / 1e6;
+
+    logger.debug(`Call to get submissions: ${elapsed} ms, count: ${jotSubmissions.length}, `)
+
+    await addSubmissionMetaData(formOwnerUserId, jotSubmissions);
+    return res.status(200).json({forms: jotSubmissions});
+
+  } catch (error) {
+      logger.error('error while getting all jot forms for user:', error)
+      logger.error(error.msg | "unknown error")
+      return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 //TODO: refactor for duplicate forms
 export const getJotFormSubmissions = async (req, res) => {
   try {
+
+    if (req.query.parent_submission_id) {
+      return await getJotFormSubsByParent(req,res)
+    }
+
       const { id } = req.params;
       const limit = parseInt(req.query.limit) || 15;
       const page = parseInt(req.query.page) || 1;
-
-      const includeDelete = req.query.includeDelete === true;
 
       // might be times where we want empty submissions, but not right now
       const filterEmpty = true;
@@ -180,7 +226,7 @@ export const getJotFormSubmissions = async (req, res) => {
       const formOwnerUserId = await getFormOwner(id);
       const isOwner = formOwnerUserId == req.user.id;
       //const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
-      let jotSubmissions = await getSubmissionByForm(formOwnerUserId, jotFormId, filterEmpty, [], limit, page);
+      let jotSubmissions = await getSubmissionByForm(formOwnerUserId, jotFormId, filterEmpty, limit, page);
 
       const {data: formBeeSubs, error } = await supabase
       .from("submission")
@@ -189,19 +235,13 @@ export const getJotFormSubmissions = async (req, res) => {
 
       if (error) throw error;
 
-      //I don t think this does anything anymore, it will have filtered deleted forms on the api call
-      //if (!includeDelete){
-      //  jotSubmissions = jotSubmissions.filter(submission => submission.status !== "DELETED")
-      //}
-
       //Filter out data user is not allowed to see
       //A paid user is able to see everything
-      //An anon user is only able to see their stuff
+      //An anon user is only able to see their stuff <-- !!REMOVED THIS 3/26/25. Is this this case?!?!?
       //Otherwise, the user is able to see everything if the "view_submissions" is true on the form group
       let isFormParent = false;
       if (!isOwner) {
         const {data: accessibleForms, error: accessibleFormsError} = await getConfiguredFormsByAssociation(req.user);
-
 
         if (accessibleFormsError) throw accessibleFormsError
         const formInQuestion = accessibleForms.find(x => x.id == id);
@@ -216,23 +256,11 @@ export const getJotFormSubmissions = async (req, res) => {
 
         if (viewSubError) throw viewSubError
 
-        if (!viewSubData[0].viewable_submissions || req.user.is_anonymous) {
+        if (!viewSubData[0].viewable_submissions) {
           const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
           jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
         }
       }
-      if (req.query.parent_submission_id) {
-        const {data: submissionData, error } = await supabase
-          .from("submission")
-          .select("submission_id")
-          .eq("parent_submission_id", req.query.parent_submission_id);
-      
-        if (error) throw error;
-
-        const userSubmissions = submissionData.map( x=> x.submission_id);
-        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
-      }
-
       await addSubmissionMetaData(formOwnerUserId, jotSubmissions);
       return res.status(200).json({forms: jotSubmissions});
     }
@@ -292,23 +320,26 @@ export const getConfiguredForms = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    //this can be cleaned up/reverted now that i know the issue.
-    //It was just returning data, but now it should return data/error
-    let data, error
+    //First get forms by association, i.e. forms the user has been invited to use
+    const {data, error} = await getConfiguredFormsByAssociation(req.user)
+
+
+    //If the user is a paid (premium) user, add in any forms they own
     if (req.user.isPaid) {
-      const {data: pdData, error: pdError } = await getConfiguredFormsByUser(userId);
-      data =  pdData;
-      error = pdError;
-    } else {
-      const {data: pdData, error: pdError } = await getConfiguredFormsByAssociation(req.user)
-      data =  pdData;
-      error = pdError;
-    }
+      const {data: ownedFormsData, error: pdError } = await getConfiguredFormsByUser(userId);
+      
+      if (pdError) throw pdError
+      
+      const formView = ownedFormsData.map((form) => {
+        form.owned = true; 
+        return form;
+      })
+      data.push(...formView)
+    } 
     if (error) {
       logger.error(`error while getting configured forms: ${error}`);
       throw error;
     }
-
     
     if (!data || data.length == 0) {
       return res.status(200).json([])
@@ -347,6 +378,7 @@ export const updateForm = async (req, res) => {
   try {
     const { id} = req.params;
     const formData = req.body;
+    delete formData.owned;
     const { data, error } = await supabase
         .from('forms')
         .update(formData)

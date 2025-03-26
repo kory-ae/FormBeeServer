@@ -108,7 +108,6 @@ export const updateUserConfig = async (req, res) => {
 
 export const getUserView = async (req, res) => {
   try {
-    const formGroups = await queryFormGroups(req.user.id);
     let userView;
     if (req.user.is_anonymous) {
       userView = {
@@ -117,7 +116,6 @@ export const getUserView = async (req, res) => {
         account_type_id: ACCOUNT_TYPES.ANON,
         isConfigured: true,
         isPaid: false,
-        formGroups: formGroups,
         jotform_key: null
       }
     } else {
@@ -127,15 +125,12 @@ export const getUserView = async (req, res) => {
       .eq('user_id', req.user.id)
       .single()
 
-      const formGroups = await queryFormGroups(req.user.id);
-
       userView = {
         id: req.user.id,
         email: req.user.email,
         account_type_id: data.account_type_id,
         isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
         isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
-        formGroups: formGroups,
         jotform_key: data.jotform_key
       }
     }
