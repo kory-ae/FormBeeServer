@@ -52,7 +52,7 @@ export const addGroup = async (req, res) => {
             .single();
 
         if (error) throw error
-
+        data.owner = true;
         res.status(200).json(data);
     } catch (error) {
         logger.error('Error inserting form group:', error.message)
@@ -63,7 +63,7 @@ export const addGroup = async (req, res) => {
 export const updateGroup = async (req, res) => {
     try {
         delete req.body.has_image
-        delete req.body.owned
+        delete req.body.owner
         const { data, error } = await supabase
             .from('form_group')
             .update(req.body)

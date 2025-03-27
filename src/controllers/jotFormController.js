@@ -66,7 +66,13 @@ export const getJotFormQuestions = async (req, res) => {
   try {
     const {formId} = req.params;
     //should check user has access...
-    const userId = await getOwnerByJotFormId(formId)
+    let userId = await getOwnerByJotFormId(formId)
+
+    if (!userId && req.user.isPaid) {
+      //This is null if the form isn't created yet.
+      //
+      userId = req.user.id;
+    }
     const data = await getFormQuestions(userId, formId);
     const formattedQuestions = formatJotQuestions(data)
     return res.status(200).json({formattedQuestions});

@@ -126,7 +126,8 @@ export const getOwnerByJotFormId = async (form_id) => {
 
   if (error) throw error;
 
-  return data[0].user_id;
+  //for available questions, the form might not exist in supabase yet. So return undefined if that's the case.
+    return data[0]?.user_id;
 }
 
 
@@ -182,7 +183,8 @@ export const getJotFormSubsByParent = async (req, res) => {
     const {data: submissionData, error } = await supabase
       .from("submission")
       .select("submission_id")
-      .eq("parent_submission_id", req.query.parent_submission_id);
+      .eq("parent_submission_id", req.query.parent_submission_id)
+      .eq("form_id", id);
 
     if (error) throw error
 
@@ -301,6 +303,7 @@ export const addForm = async (req, res) => {
       logger.error(`error while adding forms records %j`, error);
       throw error;
     }
+    data.owner = true;
     return res.status(200).json(data);
   }
   catch (error)
@@ -331,7 +334,7 @@ export const getConfiguredForms = async (req, res) => {
       if (pdError) throw pdError
       
       const formView = ownedFormsData.map((form) => {
-        form.owned = true; 
+        form.owner = true; 
         return form;
       })
       data.push(...formView)
@@ -378,7 +381,7 @@ export const updateForm = async (req, res) => {
   try {
     const { id} = req.params;
     const formData = req.body;
-    delete formData.owned;
+    delete formData.owner;
     const { data, error } = await supabase
         .from('forms')
         .update(formData)
