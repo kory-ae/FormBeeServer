@@ -17,10 +17,6 @@ function formatJotQuestions (questions) {
   
   const entries = Object.entries(questions)
   
-  entries.forEach(([x, y]) => {
-    console.log(`qid: ${y.qid}, type: ${y.type}`);
-  })
-
   return entries
   .filter( ([_, q]) => !nonfillableTypes.includes(q.type))
   .map(([_, q]) => {

@@ -127,7 +127,7 @@ export const getOwnerByJotFormId = async (form_id) => {
   if (error) throw error;
 
   //for available questions, the form might not exist in supabase yet. So return undefined if that's the case.
-    return data[0]?.user_id;
+  return data[0]?.user_id;
 }
 
 
