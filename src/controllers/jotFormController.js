@@ -2,7 +2,7 @@ import { getForms, getForm, getFormQuestions } from '../services/jotAPIService.j
 import { getFormOwner, getOwnerByJotFormId } from './formController.js'
 import logger from '../config/logger.js';
 
-function formatJotQuestions (questions) {
+export function formatJotQuestions (questions) {
   if (!questions || questions.length ==0) {
     return [];
   }

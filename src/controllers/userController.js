@@ -91,17 +91,42 @@ export const updateUserConfig = async (req, res) => {
     };
 
     const {data, error} = await supabase
-      .from("user_config")
-      .update(updateObject)
-      .eq('user_id', req.user.id )
+    .from("user_config")
+    .update(updateObject)
+    .eq('user_id', req.user.id )
 
-      if (error) {
-        throw error
-      }  
-    return res.status(200).json({"message": "ok"});
+    if (error) throw error
+
+    //return the new view.
+    return await getUserView(req, res);
   } catch (error) {
     logger.error('error while updating userConfig:')
     logger.error(error)
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export const deleteUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { error:fbError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (fbError) throw fbError;
+
+    const {error: sbError} =  await supabase
+      .auth
+      .admin
+      .deleteUser(userId);
+
+    if (sbError) throw sbError;
+
+    return res.status(204).json();
+  }
+  catch (error) {
+    logger.error("Error while deleting user", error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -185,7 +210,7 @@ async function linkUserFormGroup(form_group_id, user_id) {
 
 export const addUserFormGroup = async (req, res) => {
   try {
-    const { code } = req.params;
+    const { code } = req.params.toUpperCase();
 
     const data = await getCodeData(code, req.user.id)    
     if(!data) {

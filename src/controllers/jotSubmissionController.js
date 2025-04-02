@@ -1,8 +1,10 @@
-import { getSubmission, deleteSubmission, getSubmissionByForm } from '../services/jotAPIService.js';
+import { getSubmission, deleteSubmission, getSubmissionByForm, getFormQuestions } from '../services/jotAPIService.js';
 import logger from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { userHasGroupAccess } from '../controllers/formGroupController.js'
-import { getFormOwner as formGetFormByUser, addSubmissionMetaData } from '../controllers/formController.js';
+import { getFormOwner as formGetFormByUser, getOwnerByJotFormId, addSubmissionMetaData } from '../controllers/formController.js';
+import { formatJotQuestions } from './jotFormController.js'
+
 
 async function getFormOwner (submission_id) {
   
@@ -77,7 +79,17 @@ export const getGroupParentMeta = async (req, res) => {
 
     if (error) throw error;
 
-    const headerSet = data.forms.visible_fields.map(f => {
+    let userId = await getOwnerByJotFormId(data.forms.form_id)
+    //filter out fields not available anymore...
+    const questionData = await getFormQuestions(userId, data.forms.form_id);
+    const availableFields = formatJotQuestions(questionData)
+    .map(d => d.header)
+
+    const headerSet = data
+    .forms
+    .visible_fields
+    .filter(f => availableFields.includes(f))
+    .map(f => {
       return {headerName: f, fieldName: formatField(f)}
     })
 
