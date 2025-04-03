@@ -62,16 +62,24 @@ export const addGroup = async (req, res) => {
 
 export const updateGroup = async (req, res) => {
     try {
-        delete req.body.has_image
-        delete req.body.owner
-        const { data, error } = await supabase
+        
+        const formGroup = {...req.body};
+        
+        delete formGroup.has_image
+        delete formGroup.owner
+
+        const { data: updatedFormGroup, error } = await supabase
             .from('form_group')
-            .update(req.body)
+            .update(formGroup)
             .eq('id', req.body.id)
             .select('*')
             .single();
         if (error) throw error
-        return res.status(200).json(data)
+
+        updatedFormGroup.has_image = req.body.has_image
+        updatedFormGroup.owner = req.body.owner
+
+        return res.status(200).json(updatedFormGroup)
     } catch (error) {
         logger.error('Error updating form group:', error.message)
         res.status(500).json({ error: 'Internal server error' });
