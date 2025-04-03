@@ -210,7 +210,8 @@ async function linkUserFormGroup(form_group_id, user_id) {
 
 export const addUserFormGroup = async (req, res) => {
   try {
-    const { code } = req.params.toUpperCase();
+    let { code } = req.params;
+    code = code.toUpperCase();
 
     const data = await getCodeData(code, req.user.id)    
     if(!data) {
