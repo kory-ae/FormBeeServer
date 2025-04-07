@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createUser, updateUserConfig, deleteUser, getUserView, addUserFormGroup, validateCode} from '../controllers/userController.js';
+import { createUser, updateUserConfig, deleteUser, getUserView, addUserFormGroup, validateCode, resendEmailConfirm} from '../controllers/userController.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -17,6 +17,9 @@ router.post(
   ],
   createUser
 );
+
+router.put('/user/resendEmailConfirm', resendEmailConfirm)
+
 
 router.put('/user/userConfig', authenticate, updateUserConfig);
 

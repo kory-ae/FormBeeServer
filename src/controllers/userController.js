@@ -238,3 +238,25 @@ export const validateCode = async (req, res) => {
   }
   return res.status(200).json(data);
 }
+
+export const resendEmailConfirm = async (req, res) => {
+
+  //TODO handle attaching code on resend?
+  let redirect = `${process.env.CLIENT_HOST}/login`
+  const {error} = await supabase.auth.resend({
+    type: 'signup',
+    email: req.body.email, 
+    options: {
+      emailRedirectTo: redirect,
+    }
+  })
+
+  if (error) {
+    
+    logger.error('Error while asking Supabase to resend confirmation email', error)
+    return res.status(400).json("Resending email did not succeed")
+  } else {
+    return res.status(200).json();
+  }
+  
+}

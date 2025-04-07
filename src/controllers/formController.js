@@ -171,7 +171,7 @@ const getJotFormId = async (id) => {
   return data.form_id;
 }
 
-export const getJotFormSubsByParent = async (req, res) => {
+export const getJotFormSubsByParent = async (filterToUser, req, res) => {
   try {
     const start = process.hrtime.bigint();
     const { id } = req.params;
@@ -182,14 +182,16 @@ export const getJotFormSubsByParent = async (req, res) => {
 
     const {data: submissionData, error } = await supabase
       .from("submission")
-      .select("submission_id")
+      .select("submission_id, user_id")
       .eq("parent_submission_id", req.query.parent_submission_id)
       .eq("form_id", id);
 
     if (error) throw error
 
+    const filteredSubmissionData = filterToUser ? submissionData.filter(x => x.user_id == req.user.id) : submissionData
+
     let jotSubmissions = [];
-    for (const sub of submissionData) {
+    for (const sub of filteredSubmissionData) {
       const data = await getSubmission(formOwnerUserId, sub.submission_id);
       jotSubmissions.push(data)
     }
@@ -211,66 +213,71 @@ export const getJotFormSubsByParent = async (req, res) => {
 //TODO: refactor for duplicate forms
 export const getJotFormSubmissions = async (req, res) => {
   try {
+    const { id } = req.params;
+    const limit = parseInt(req.query.limit) || 15;
+    const page = parseInt(req.query.page) || 1;
+
+    const {data: viewSubData, error: viewSubError} = await supabase
+    .from("forms")
+    .select("viewable_submissions")
+    .eq("id", id)
+
+    if (viewSubError) throw viewSubError
+
+    const filterToUser = !viewSubData[0].viewable_submissions || req.user.is_anonymous
 
     if (req.query.parent_submission_id) {
-      return await getJotFormSubsByParent(req,res)
+      return await getJotFormSubsByParent(filterToUser, req,res)
     }
 
-      const { id } = req.params;
-      const limit = parseInt(req.query.limit) || 15;
-      const page = parseInt(req.query.page) || 1;
+    // might be times where we want empty submissions, but not right now
+    const filterEmpty = true;
 
-      // might be times where we want empty submissions, but not right now
-      const filterEmpty = true;
+    const jotFormId = await getJotFormId(id)
+    const formOwnerUserId = await getFormOwner(id);
+    const isOwner = formOwnerUserId == req.user.id;
+    //const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
+    let jotSubmissions = await getSubmissionByForm(formOwnerUserId, jotFormId, filterEmpty, limit, page);
 
-      const jotFormId = await getJotFormId(id)
+    const {data: formBeeSubs, error } = await supabase
+    .from("submission")
+    .select("submission_id, user_id")
+    .eq("form_id", id)
 
-      const formOwnerUserId = await getFormOwner(id);
-      const isOwner = formOwnerUserId == req.user.id;
-      //const userId =  (req.user.isPaid) ? req.user.id : await getFormOwner(id)
-      let jotSubmissions = await getSubmissionByForm(formOwnerUserId, jotFormId, filterEmpty, limit, page);
+    if (error) throw error;
 
-      const {data: formBeeSubs, error } = await supabase
-      .from("submission")
-      .select("submission_id, user_id")
-      .eq("form_id", id)
+    //Filter out data user is not allowed to see
+    //A paid user is able to see everything
+    //An anon user is only able to see their stuff 
+    //Otherwise, the user is able to see everything if the "view_submissions" is true on the form group
+    let isFormParent = false;
+    if (!isOwner) {
+      const {data: accessibleForms, error: accessibleFormsError} = await getConfiguredFormsByAssociation(req.user);
 
-      if (error) throw error;
+      if (accessibleFormsError) throw accessibleFormsError
+      const formInQuestion = accessibleForms.find(x => x.id == id);
+      isFormParent = formInQuestion?.parent_form_id == id
+    }
+    if (!isOwner && !isFormParent) {
 
-      //Filter out data user is not allowed to see
-      //A paid user is able to see everything
-      //An anon user is only able to see their stuff <-- !!REMOVED THIS 3/26/25. Is this this case?!?!?
-      //Otherwise, the user is able to see everything if the "view_submissions" is true on the form group
-      let isFormParent = false;
-      if (!isOwner) {
-        const {data: accessibleForms, error: accessibleFormsError} = await getConfiguredFormsByAssociation(req.user);
-
-        if (accessibleFormsError) throw accessibleFormsError
-        const formInQuestion = accessibleForms.find(x => x.id == id);
-        isFormParent = formInQuestion?.parent_form_id == id
+      const {data: viewSubData, error: viewSubError} = await supabase
+      .from("forms")
+      .select("viewable_submissions")
+      .eq("id", id)
+      
+      if (filterToUser) {
+        const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
+        jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id));
       }
-      if (!isOwner && !isFormParent) {
-
-        const {data: viewSubData, error: viewSubError} = await supabase
-        .from("forms")
-        .select("viewable_submissions")
-        .eq("id", id)
-
-        if (viewSubError) throw viewSubError
-
-        if (!viewSubData[0].viewable_submissions) {
-          const userSubmissions = formBeeSubs.filter(x => x.user_id == req.user.id).map( x=> x.submission_id);
-          jotSubmissions = jotSubmissions.filter(submission => userSubmissions.includes(submission.id))
-        }
-      }
-      await addSubmissionMetaData(formOwnerUserId, jotSubmissions);
-      return res.status(200).json({forms: jotSubmissions});
     }
-    catch (error) {
-      logger.error('error while getting all jot forms for user:', error)
-      logger.error(error.msg | "unknown error")
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    await addSubmissionMetaData(formOwnerUserId, jotSubmissions);
+    return res.status(200).json({forms: jotSubmissions});
+  }
+  catch (error) {
+    logger.error('error while getting all jot forms for user:', error)
+    logger.error(error.msg | "unknown error")
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 export const addForm = async (req, res) => {
@@ -338,7 +345,7 @@ export const getConfiguredForms = async (req, res) => {
         return form;
       })
       data.push(...formView)
-    } 
+    }
     if (error) {
       logger.error(`error while getting configured forms: ${error}`);
       throw error;
