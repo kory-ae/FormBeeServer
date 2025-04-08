@@ -32,7 +32,7 @@ app.use('/api', testRoutes)
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ status: 'ok', phase: "III" });
 });
 
 // check supabase latency
