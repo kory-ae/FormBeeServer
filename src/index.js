@@ -44,5 +44,5 @@ app.get('/instrument', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  logger.info("Info logging from winston!!!")
+  logger.info("PHASE II: Info logging from winston!!!")
 });
