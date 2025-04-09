@@ -22,15 +22,15 @@ async function getFormOwner (submission_id) {
 export const getJotSubmission = async (req, res) => {
   try {
     const { submissionId } = req.params;
-    const data = await getSubmission(req.user.id, submissionId);
-    
-    const userId =  (req.user.isPaid) ? req.user.id : await formGetFormByUser(id)
+    const formId = req.query.form_id;
+    const userId =  (req.user.isPaid) ? req.user.id : await formGetFormByUser(formId)
+    const data = await getSubmission(userId, submissionId);
     await addSubmissionMetaData(userId,[data])
 
     return res.status(200).json(data);
   }
   catch (error) {
-    logger.error(`error while getting jot submission: ${error}`)
+    logger.error(`error while getting jot submission`, error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
