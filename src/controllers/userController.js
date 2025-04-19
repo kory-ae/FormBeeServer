@@ -1,8 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import logger from '../config/logger.js';
-import { isPaid } from '../middleware/auth.js';
 import { ACCOUNT_TYPES } from '../types/accountTypes.js';
-import { queryFormGroups } from './formGroupController.js';
 
 export const createUser = async (req, res) => {
   try {
@@ -20,7 +18,7 @@ export const createUser = async (req, res) => {
         error: 'Email already registered' 
       });
     }
-    
+
     let redirect = `${process.env.CLIENT_HOST}/login`
     const code = req.query.code;
     let codeData;
@@ -154,8 +152,8 @@ export const getUserView = async (req, res) => {
         id: req.user.id,
         email: req.user.email,
         account_type_id: data.account_type_id,
-        isConfigured: data.account_type_id != ACCOUNT_TYPES.PAID || (data.account_type_id == ACCOUNT_TYPES.PAID && data.jotform_key != null),
-        isPaid: data.account_type_id == ACCOUNT_TYPES.PAID,
+        isConfigured: data.account_type_id != ACCOUNT_TYPES.PREMIUM || (data.account_type_id == ACCOUNT_TYPES.PREMIUM && data.jotform_key != null),
+        isPaid: data.account_type_id == ACCOUNT_TYPES.PREMIUM,
         jotform_key: data.jotform_key
       }
     }
